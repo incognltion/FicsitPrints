@@ -559,6 +559,8 @@
           <div class="tag-placeholder">Tags will be added later</div>
         </div>
 
+        <p id="publish-status" class="status" role="status" aria-live="polite"></p>
+
         <div class="dialog-actions">
           <button id="cancel-publish" class="button secondary" type="button">Cancel</button>
           <button id="publish-button" class="button" type="button">Publish</button>
@@ -618,6 +620,7 @@
       const publishButton = document.querySelector("#publish-button");
       const blueprintName = document.querySelector("#blueprint-name");
       const fileSummary = document.querySelector("#file-summary");
+      const publishStatus = document.querySelector("#publish-status");
       let blueprints = [];
       let selectedFile = null;
       let selectedBlueprint = null;
@@ -639,7 +642,12 @@
 
       function openDatabase() {
         return new Promise((resolve, reject) => {
-          const request = indexedDB.open(databaseName, 1);
+          if (!window.indexedDB) {
+            reject(new Error("IndexedDB is unavailable."));
+            return;
+          }
+
+          const request = window.indexedDB.open(databaseName, 1);
 
           request.addEventListener("upgradeneeded", () => {
             const database = request.result;
@@ -662,6 +670,10 @@
       }
 
       async function getSavedBlueprints() {
+        if (!window.indexedDB) {
+          return getLegacyBlueprints();
+        }
+
         const database = await openDatabase();
         return new Promise((resolve, reject) => {
           const transaction = database.transaction(storeName, "readonly");
@@ -672,10 +684,51 @@
       }
 
       async function saveBlueprintRecord(blueprint) {
+        if (!window.indexedDB) {
+          await saveLegacyBlueprintRecord(blueprint);
+          return;
+        }
+
         const database = await openDatabase();
         const transaction = database.transaction(storeName, "readwrite");
         transaction.objectStore(storeName).put(blueprint);
         await transactionComplete(transaction);
+      }
+
+      function getLegacyBlueprints() {
+        try {
+          return (JSON.parse(localStorage.getItem(legacyStorageKey)) || []).map(normalizeBlueprint);
+        } catch {
+          return [];
+        }
+      }
+
+      function fileToDataUrl(file) {
+        return new Promise((resolve, reject) => {
+          if (!file) {
+            resolve("");
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.addEventListener("load", () => resolve(String(reader.result || "")));
+          reader.addEventListener("error", () => reject(reader.error));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function saveLegacyBlueprintRecord(blueprint) {
+        const existingBlueprints = getLegacyBlueprints();
+        const serializableBlueprint = {
+          ...blueprint,
+          fileBlob: null,
+          fileDataUrl: blueprint.fileDataUrl || await fileToDataUrl(blueprint.fileBlob),
+        };
+        const nextBlueprints = [
+          serializableBlueprint,
+          ...existingBlueprints.filter((savedBlueprint) => savedBlueprint.id !== blueprint.id),
+        ];
+        localStorage.setItem(legacyStorageKey, JSON.stringify(nextBlueprints));
       }
 
       async function migrateLegacyBlueprints() {
@@ -726,6 +779,11 @@
         status.textContent = message;
         status.classList.toggle("error", isError);
         dropZone.classList.toggle("has-error", isError);
+      }
+
+      function setPublishStatus(message, isError = false) {
+        publishStatus.textContent = message;
+        publishStatus.classList.toggle("error", isError);
       }
 
       function safeFileBaseName(name) {
@@ -796,6 +854,8 @@
         closeModal(uploadModal);
         openModal(publishModal);
         setStatus("Blueprint format accepted. Ready to publish.");
+        setPublishStatus("");
+        publishButton.disabled = false;
         blueprintName.focus();
         blueprintName.select();
       }
@@ -925,7 +985,7 @@
       publishButton.addEventListener("click", async () => {
         const name = blueprintName.value.trim();
         if (!name) {
-          setStatus("Add a blueprint name before publishing.", true);
+          setPublishStatus("Add a blueprint name before publishing.", true);
           blueprintName.focus();
           return;
         }
@@ -944,9 +1004,12 @@
         };
 
         try {
+          publishButton.disabled = true;
+          setPublishStatus("Saving blueprint...");
           await saveBlueprintRecord(newBlueprint);
         } catch {
-          setStatus("The browser could not save this file locally. Try a smaller file, or use the Cloudflare version once storage is connected.", true);
+          setPublishStatus("The browser could not save this file locally. Try a smaller file, or use the Cloudflare version once storage is connected.", true);
+          publishButton.disabled = false;
           return;
         }
 
@@ -955,6 +1018,8 @@
           ...blueprints,
         ];
         closeModal(publishModal);
+        publishButton.disabled = false;
+        setPublishStatus("");
         search.value = "";
         renderCatalogue();
       });
