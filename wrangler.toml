@@ -1,0 +1,12 @@
+name = "ficsitprints"
+pages_build_output_dir = "."
+compatibility_date = "2026-07-04"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ficsitprints"
+database_id = "replace-with-cloudflare-d1-database-id"
+
+[[r2_buckets]]
+binding = "BLUEPRINT_FILES"
+bucket_name = "ficsitprints-blueprints"

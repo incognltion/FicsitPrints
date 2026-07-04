@@ -597,6 +597,7 @@
       const legacyStorageKey = "ficsitprints.blueprints";
       const databaseName = "ficsitprints";
       const storeName = "blueprints";
+      const apiBase = "/api/blueprints";
 
       const catalogue = document.querySelector("#catalogue");
       const blueprintCount = document.querySelector("#blueprint-count");
@@ -624,6 +625,7 @@
       let blueprints = [];
       let selectedFile = null;
       let selectedBlueprint = null;
+      let sharedStorageEnabled = false;
 
       function normalizeBlueprint(blueprint) {
         return {
@@ -751,6 +753,19 @@
 
       async function loadBlueprints() {
         try {
+          const response = await fetch(apiBase, { headers: { Accept: "application/json" } });
+          if (response.ok) {
+            const data = await response.json();
+            sharedStorageEnabled = true;
+            blueprints = data.blueprints.map(normalizeBlueprint);
+            renderCatalogue();
+            return;
+          }
+        } catch {
+          sharedStorageEnabled = false;
+        }
+
+        try {
           blueprints = (await getSavedBlueprints()).sort((first, second) => {
             return new Date(second.uploadedAt) - new Date(first.uploadedAt);
           });
@@ -835,7 +850,7 @@
         blueprintCount.textContent = `${blueprints.length} ${blueprints.length === 1 ? "blueprint" : "blueprints"}`;
         emptyState.classList.toggle("is-visible", filteredBlueprints.length === 0);
         emptyState.innerHTML = blueprints.length === 0
-          ? "<strong>No blueprints uploaded yet.</strong>Use the Upload Blueprint button to add the first one."
+          ? `<strong>No blueprints uploaded yet.</strong>${sharedStorageEnabled ? "Use the Upload Blueprint button to add the first shared blueprint." : "Use the Upload Blueprint button to add a local test blueprint."}`
           : "No blueprints match that search.";
       }
 
@@ -867,7 +882,7 @@
 
         selectedBlueprint = blueprint;
         downloadSummary.textContent = `${blueprint.name} uploaded from ${blueprint.fileName || "a local file"}.`;
-        const hasStoredFile = Boolean(blueprint.fileBlob || blueprint.fileDataUrl);
+        const hasStoredFile = Boolean(sharedStorageEnabled || blueprint.fileBlob || blueprint.fileDataUrl);
         downloadWarning.textContent = hasStoredFile
           ? ""
           : "This blueprint was uploaded before file saving was added. Re-upload it once and downloads will work.";
@@ -905,6 +920,13 @@
       }
 
       async function downloadBlueprint(extension) {
+        if (sharedStorageEnabled && selectedBlueprint) {
+          window.location.href = `${apiBase}/${encodeURIComponent(selectedBlueprint.id)}/download?extension=${encodeURIComponent(extension)}`;
+          selectedBlueprint.downloads += 1;
+          renderCatalogue();
+          return;
+        }
+
         const blob = selectedBlueprint ? storedBlobFor(selectedBlueprint) : null;
         if (!blob) {
           downloadWarning.textContent = "There is no saved file content for this blueprint. Re-upload it to make it downloadable.";
@@ -1005,18 +1027,41 @@
 
         try {
           publishButton.disabled = true;
-          setPublishStatus("Saving blueprint...");
-          await saveBlueprintRecord(newBlueprint);
+          setPublishStatus(sharedStorageEnabled ? "Publishing blueprint for everyone..." : "Saving blueprint locally...");
+
+          if (sharedStorageEnabled) {
+            const formData = new FormData();
+            formData.append("name", name);
+            formData.append("file", selectedFile);
+            const response = await fetch(apiBase, {
+              method: "POST",
+              body: formData,
+            });
+
+            if (!response.ok) {
+              throw new Error("Publish failed.");
+            }
+
+            const data = await response.json();
+            blueprints = [
+              normalizeBlueprint(data.blueprint),
+              ...blueprints,
+            ];
+          } else {
+            await saveBlueprintRecord(newBlueprint);
+            blueprints = [
+              newBlueprint,
+              ...blueprints,
+            ];
+          }
         } catch {
-          setPublishStatus("The browser could not save this file locally. Try a smaller file, or use the Cloudflare version once storage is connected.", true);
+          setPublishStatus(sharedStorageEnabled
+            ? "The shared publish failed. Try again, or check the Cloudflare storage setup."
+            : "The browser could not save this file locally. Try a smaller file, or use the Cloudflare version once storage is connected.", true);
           publishButton.disabled = false;
           return;
         }
 
-        blueprints = [
-          newBlueprint,
-          ...blueprints,
-        ];
         closeModal(publishModal);
         publishButton.disabled = false;
         setPublishStatus("");

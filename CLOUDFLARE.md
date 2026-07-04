@@ -9,6 +9,22 @@ FicsitPrints is currently a static prototype, so the easiest Cloudflare path is 
 - Build output directory: `.`
 - Production branch: `main`
 - Root directory: repository root
+- Functions directory: `functions`
+
+## Storage Setup
+
+Create the production database and bucket:
+
+```bash
+npx wrangler d1 create ficsitprints
+npx wrangler r2 bucket create ficsitprints-blueprints
+```
+
+Copy the D1 database id into `wrangler.toml`, then run:
+
+```bash
+npx wrangler d1 migrations apply ficsitprints
+```
 
 ## Manual Deploy
 
@@ -19,9 +35,9 @@ npm install
 npm run deploy:cloudflare
 ```
 
-## Later Backend Plan
+## Backend Plan
 
-- Store blueprint metadata in Cloudflare D1.
-- Store `.sbp` and `.sbpcfg` files in Cloudflare R2.
-- Move upload and download logic from browser `localStorage` into Worker API routes.
+- Blueprint metadata is stored in Cloudflare D1.
+- `.sbp` and `.sbpcfg` files are stored in Cloudflare R2.
+- Upload and download routes live in `functions/api/blueprints`.
 - Add authentication before public uploads.
