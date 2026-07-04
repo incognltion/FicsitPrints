@@ -597,13 +597,18 @@
 
       .detail-layout {
         display: grid;
-        grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
         gap: 24px;
         align-items: start;
       }
 
+      .detail-media {
+        min-width: 0;
+      }
+
       .detail-image {
-        min-height: 360px;
+        width: 100%;
+        min-width: 0;
         aspect-ratio: 16 / 9;
         border-radius: 8px;
         background:
@@ -630,12 +635,42 @@
         margin: 0 0 12px;
         font-size: 38px;
         line-height: 1.05;
+        overflow-wrap: anywhere;
       }
 
       .detail-description {
         color: #c8d0dc;
-        line-height: 1.55;
-        margin: 0 0 18px;
+        font-size: 20px;
+        line-height: 1.6;
+        margin: 18px 0 0;
+        max-width: 74ch;
+      }
+
+      .profile-link {
+        border: 0;
+        background: transparent;
+        color: #ffb15d;
+        cursor: pointer;
+        font-weight: 800;
+        padding: 0;
+      }
+
+      .profile-panel {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.06);
+        padding: 16px;
+        margin-top: 18px;
+      }
+
+      .profile-panel h3 {
+        margin: 0 0 8px;
+      }
+
+      .profile-panel p {
+        margin: 0 0 12px;
+        color: #c8d0dc;
+        line-height: 1.5;
       }
 
       .detail-meta,
@@ -810,10 +845,12 @@
       <section id="detail-view" class="detail-view" aria-live="polite">
         <button id="back-to-catalogue" class="button secondary detail-back" type="button">Back to catalogue</button>
         <div class="detail-layout">
-          <div id="detail-image" class="detail-image">BP</div>
+          <div class="detail-media">
+            <div id="detail-image" class="detail-image">BP</div>
+            <p id="detail-description" class="detail-description"></p>
+          </div>
           <div class="detail-panel">
             <h2 id="detail-title"></h2>
-            <p id="detail-description" class="detail-description"></p>
             <div id="detail-tags" class="detail-tags"></div>
             <div id="detail-meta" class="detail-meta"></div>
             <div class="detail-actions">
@@ -948,11 +985,19 @@
           <div id="profile-preview" class="image-preview">Optional profile picture</div>
         </div>
 
+        <div class="field">
+          <label for="profile-bio">Bio</label>
+          <textarea id="profile-bio" class="text-input" placeholder="Tell people what kind of factories you like building."></textarea>
+        </div>
+
+        <div id="profile-panel" class="profile-panel"></div>
+
         <p id="account-status" class="status" role="status" aria-live="polite"></p>
 
         <div class="dialog-actions">
           <button id="sign-out-button" class="button secondary" type="button">Sign Out</button>
           <button id="sign-in-button" class="button secondary" type="button">Sign In</button>
+          <button id="save-profile-button" class="button secondary" type="button">Save Profile</button>
           <button id="create-account-button" class="button" type="button">Create Account</button>
         </div>
       </div>
@@ -996,9 +1041,12 @@
       const accountName = document.querySelector("#account-name");
       const signInButton = document.querySelector("#sign-in-button");
       const createAccountButton = document.querySelector("#create-account-button");
+      const saveProfileButton = document.querySelector("#save-profile-button");
       const signOutButton = document.querySelector("#sign-out-button");
       const profileImageInput = document.querySelector("#profile-image-input");
       const profilePreview = document.querySelector("#profile-preview");
+      const profileBio = document.querySelector("#profile-bio");
+      const profilePanel = document.querySelector("#profile-panel");
       const openUpload = document.querySelector("#open-upload");
       const uploadModal = document.querySelector("#upload-modal");
       const closeUpload = document.querySelector("#close-upload");
@@ -1097,6 +1145,56 @@
         }
         renderAccount();
         renderCatalogue();
+      }
+
+      function canChangeUsername(account) {
+        if (!account?.usernameChangedAt) {
+          return true;
+        }
+
+        const elapsed = Date.now() - new Date(account.usernameChangedAt).getTime();
+        return elapsed >= 14 * 24 * 60 * 60 * 1000;
+      }
+
+      function daysUntilUsernameChange(account) {
+        if (!account?.usernameChangedAt) {
+          return 0;
+        }
+
+        const next = new Date(account.usernameChangedAt).getTime() + 14 * 24 * 60 * 60 * 1000;
+        return Math.max(0, Math.ceil((next - Date.now()) / (24 * 60 * 60 * 1000)));
+      }
+
+      function updateAccountRecord(nextAccount) {
+        const accounts = getAccounts().map((account) => account.id === nextAccount.id ? nextAccount : account);
+        saveAccounts(accounts);
+        setCurrentAccount(nextAccount);
+      }
+
+      function bestWorksFor(account) {
+        if (!account) {
+          return [];
+        }
+
+        return blueprints
+          .filter((blueprint) => blueprint.ownerId === account.id)
+          .sort((first, second) => second.downloads - first.downloads)
+          .slice(0, 3);
+      }
+
+      function renderProfilePanel(account) {
+        if (!account) {
+          profilePanel.innerHTML = "<h3>No account selected</h3><p>Sign in or create an account to edit a profile.</p>";
+          return;
+        }
+
+        const bestWorks = bestWorksFor(account);
+        profilePanel.innerHTML = `
+          <h3>${escapeHtml(account.username)}</h3>
+          <p>${escapeHtml(account.bio || "No bio yet.")}</p>
+          <strong>Best works</strong>
+          <p>${bestWorks.length ? bestWorks.map((blueprint) => escapeHtml(blueprint.name)).join(", ") : "No uploads yet."}</p>
+        `;
       }
 
       async function hashPassword(password) {
@@ -1480,12 +1578,25 @@
         detailMeta.innerHTML = `
           <div class="detail-uploader">
             ${blueprint.authorAvatar ? `<img class="avatar" src="${escapeHtml(blueprint.authorAvatar)}" alt="">` : ""}
-            <span>Uploaded by ${escapeHtml(blueprint.author)}</span>
+            <span>Uploaded by <button class="profile-link" type="button" data-profile-owner="${escapeHtml(blueprint.ownerId)}">${escapeHtml(blueprint.author)}</button></span>
           </div>
           <span class="stat">${new Date(blueprint.uploadedAt).toLocaleDateString()}</span>
           <span class="stat">${escapeHtml(blueprint.downloads)} downloads</span>
         `;
         editBlueprint.style.display = currentAccount && blueprint.ownerId === currentAccount.id ? "block" : "none";
+      }
+
+      function openProfileForOwner(ownerIdToOpen) {
+        const account = getAccounts().find((savedAccount) => savedAccount.id === ownerIdToOpen) || currentAccount;
+        accountUsername.value = account?.username || "";
+        accountPassword.value = "";
+        profileImageDataUrl = account?.profileImageDataUrl || "";
+        profileBio.value = account?.bio || "";
+        profilePreview.innerHTML = profileImageDataUrl ? `<img src="${profileImageDataUrl}" alt="">` : "Optional profile picture";
+        renderProfilePanel(account);
+        setAccountStatus(account?.id === currentAccount?.id ? "" : "You can view this profile here. Only the owner can edit it.");
+        saveProfileButton.disabled = account?.id !== currentAccount?.id;
+        openModal(accountModal);
       }
 
       function openModal(modal) {
@@ -1655,7 +1766,10 @@
         accountUsername.value = currentAccount?.username || "";
         accountPassword.value = "";
         profileImageDataUrl = currentAccount?.profileImageDataUrl || "";
+        profileBio.value = currentAccount?.bio || "";
         profilePreview.innerHTML = profileImageDataUrl ? `<img src="${profileImageDataUrl}" alt="">` : "Optional profile picture";
+        renderProfilePanel(currentAccount);
+        saveProfileButton.disabled = !currentAccount;
         openModal(accountModal);
       });
       closeAccount.addEventListener("click", () => closeModal(accountModal));
@@ -1684,6 +1798,8 @@
           username,
           passwordHash: await hashPassword(password),
           profileImageDataUrl,
+          bio: profileBio.value.trim(),
+          usernameChangedAt: new Date().toISOString(),
         };
         accounts.push(account);
         saveAccounts(accounts);
@@ -1706,6 +1822,54 @@
         setCurrentAccount(account);
         closeModal(accountModal);
       });
+      saveProfileButton.addEventListener("click", async () => {
+        if (!currentAccount) {
+          setAccountStatus("Sign in before editing a profile.", true);
+          return;
+        }
+
+        const accounts = getAccounts();
+        const username = accountUsername.value.trim();
+        const usernameChanged = username && username.toLowerCase() !== currentAccount.username.toLowerCase();
+
+        if (usernameChanged) {
+          if (!canChangeUsername(currentAccount)) {
+            setAccountStatus(`You can change your username again in ${daysUntilUsernameChange(currentAccount)} days.`, true);
+            return;
+          }
+
+          if (accounts.some((account) => account.id !== currentAccount.id && account.username.toLowerCase() === username.toLowerCase())) {
+            setAccountStatus("That username is already taken.", true);
+            return;
+          }
+        }
+
+        const nextAccount = {
+          ...currentAccount,
+          username: username || currentAccount.username,
+          profileImageDataUrl,
+          bio: profileBio.value.trim(),
+          usernameChangedAt: usernameChanged ? new Date().toISOString() : currentAccount.usernameChangedAt,
+        };
+
+        updateAccountRecord(nextAccount);
+        blueprints = blueprints.map((blueprint) => {
+          if (blueprint.ownerId !== nextAccount.id) {
+            return blueprint;
+          }
+
+          const updatedBlueprint = {
+            ...blueprint,
+            author: nextAccount.username,
+            authorAvatar: nextAccount.profileImageDataUrl || "",
+          };
+          saveBlueprintRecord(updatedBlueprint);
+          return updatedBlueprint;
+        });
+        renderProfilePanel(nextAccount);
+        renderCatalogue();
+        setAccountStatus("Profile updated.");
+      });
       signOutButton.addEventListener("click", () => {
         setCurrentAccount(null);
         closeModal(accountModal);
@@ -1724,6 +1888,14 @@
         renderCatalogue();
       });
       backToCatalogue.addEventListener("click", showCatalogue);
+      detailMeta.addEventListener("click", (event) => {
+        const profileButton = event.target.closest(".profile-link");
+        if (!profileButton) {
+          return;
+        }
+
+        openProfileForOwner(profileButton.dataset.profileOwner);
+      });
       editBlueprint.addEventListener("click", () => {
         if (selectedBlueprint) {
           openEditMenu(selectedBlueprint);
