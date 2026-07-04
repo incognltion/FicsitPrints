@@ -765,30 +765,24 @@
         gap: 14px;
       }
 
-      .profile-blueprint {
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.05);
-        color: #f7f9fc;
-        cursor: pointer;
-        display: grid;
-        gap: 10px;
-        min-height: 118px;
-        padding: 14px;
-        text-align: left;
-      }
-
-      .profile-blueprint strong {
-        overflow-wrap: anywhere;
-      }
-
-      .profile-blueprint span {
-        color: #aeb8c6;
-      }
-
       .profile-empty {
         color: #aeb8c6;
         margin: 0;
+      }
+
+      .best-work-options {
+        display: grid;
+        gap: 8px;
+      }
+
+      .best-work-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 6px;
+        padding: 10px 12px;
+        color: #c8d0dc;
       }
 
       .detail-meta,
@@ -1173,10 +1167,17 @@
           <textarea id="profile-bio" class="text-input" placeholder="Tell people what kind of factories you like building."></textarea>
         </div>
 
+        <div class="field">
+          <label>Best works</label>
+          <div id="best-work-options" class="best-work-options"></div>
+          <p class="hint">Choose up to three uploads to feature on your profile.</p>
+        </div>
+
         <div id="profile-panel" class="profile-panel"></div>
         <p id="settings-status" class="status" role="status" aria-live="polite"></p>
 
         <div class="dialog-actions">
+          <button id="settings-sign-out-button" class="button secondary" type="button">Log Out</button>
           <button id="save-profile-button" class="button" type="button">Save Profile</button>
         </div>
       </div>
@@ -1235,11 +1236,13 @@
       const createAccountButton = document.querySelector("#create-account-button");
       const saveProfileButton = document.querySelector("#save-profile-button");
       const signOutButton = document.querySelector("#sign-out-button");
+      const settingsSignOutButton = document.querySelector("#settings-sign-out-button");
       const profileImageInput = document.querySelector("#profile-image-input");
       const profilePreview = document.querySelector("#profile-preview");
       const profileCropWorkspace = document.querySelector("#profile-crop-workspace");
       const profileCropImage = document.querySelector("#profile-crop-image");
       const profileBio = document.querySelector("#profile-bio");
+      const bestWorkOptions = document.querySelector("#best-work-options");
       const profilePanel = document.querySelector("#profile-panel");
       const openUpload = document.querySelector("#open-upload");
       const uploadModal = document.querySelector("#upload-modal");
@@ -1373,6 +1376,16 @@
           return [];
         }
 
+        const selectedBestWorks = Array.isArray(account.bestWorkIds)
+          ? account.bestWorkIds
+            .map((blueprintId) => blueprints.find((blueprint) => blueprint.id === blueprintId && blueprint.ownerId === account.id))
+            .filter(Boolean)
+          : [];
+
+        if (selectedBestWorks.length) {
+          return selectedBestWorks.slice(0, 3);
+        }
+
         return blueprints
           .filter((blueprint) => blueprint.ownerId === account.id)
           .sort((first, second) => second.downloads - first.downloads)
@@ -1400,6 +1413,7 @@
           username: blueprint.author || "Unknown builder",
           profileImageDataUrl: blueprint.authorAvatar || "",
           bio: "No bio yet.",
+          bestWorkIds: [],
         };
       }
 
@@ -1417,13 +1431,33 @@
         return escapeHtml((account?.username || "F").slice(0, 1).toUpperCase());
       }
 
-      function profileBlueprintButton(blueprint) {
-        return `
-          <button class="profile-blueprint" type="button" data-profile-blueprint="${escapeHtml(blueprint.id)}">
-            <strong>${escapeHtml(blueprint.name)}</strong>
-            <span>${escapeHtml(blueprint.downloads)} downloads</span>
-          </button>
-        `;
+      function renderProfileBlueprintList(container, blueprintsToRender, emptyMessage) {
+        if (!blueprintsToRender.length) {
+          container.innerHTML = `<p class="profile-empty">${escapeHtml(emptyMessage)}</p>`;
+          return;
+        }
+
+        container.replaceChildren(...blueprintsToRender.map(cardFor));
+      }
+
+      function selectedBestWorkIds() {
+        return Array.from(bestWorkOptions.querySelectorAll("input:checked")).map((input) => input.value).slice(0, 3);
+      }
+
+      function renderBestWorkOptions(account) {
+        const uploads = uploadsFor(account);
+        if (!uploads.length) {
+          bestWorkOptions.innerHTML = `<p class="profile-empty">Upload blueprints to pick featured work.</p>`;
+          return;
+        }
+
+        const selectedIds = new Set(Array.isArray(account.bestWorkIds) ? account.bestWorkIds : []);
+        bestWorkOptions.innerHTML = uploads.map((blueprint) => `
+          <label class="best-work-option">
+            <input type="checkbox" value="${escapeHtml(blueprint.id)}" ${selectedIds.has(blueprint.id) ? "checked" : ""}>
+            <span>${escapeHtml(blueprint.name)}</span>
+          </label>
+        `).join("");
       }
 
       function renderProfilePanel(account) {
@@ -1453,6 +1487,7 @@
           profileCropImage.src = profileImageRawDataUrl;
           profileCropImage.style.objectPosition = "50% 50%";
         }
+        renderBestWorkOptions(account);
         renderProfilePanel(account);
         settingsStatus.textContent = "";
         settingsStatus.classList.remove("error");
@@ -1876,12 +1911,8 @@
         profilePageName.textContent = account.username || "Unknown builder";
         profilePageBio.textContent = account.bio || "No bio yet.";
         profilePageEdit.style.display = account.id === currentAccount?.id ? "inline-flex" : "none";
-        profilePageBest.innerHTML = bestWorks.length
-          ? bestWorks.map(profileBlueprintButton).join("")
-          : `<p class="profile-empty">No standout uploads yet.</p>`;
-        profilePageUploads.innerHTML = uploads.length
-          ? uploads.map(profileBlueprintButton).join("")
-          : `<p class="profile-empty">No uploads yet.</p>`;
+        renderProfileBlueprintList(profilePageBest, bestWorks, "No standout uploads yet.");
+        renderProfileBlueprintList(profilePageUploads, uploads, "No uploads yet.");
       }
 
       function showDetail(blueprint) {
@@ -2082,6 +2113,11 @@
 
       search.addEventListener("input", renderCatalogue);
       accountButton.addEventListener("click", () => {
+        if (currentAccount) {
+          showProfile(currentAccount);
+          return;
+        }
+
         setAccountStatus("");
         accountUsername.value = "";
         accountPassword.value = "";
@@ -2101,6 +2137,19 @@
       closeAccount.addEventListener("click", () => closeModal(accountModal));
       settingsButton.addEventListener("click", () => openSettingsFor(currentAccount));
       closeSettings.addEventListener("click", () => closeModal(settingsModal));
+      bestWorkOptions.addEventListener("change", (event) => {
+        if (!event.target.matches("input[type='checkbox']")) {
+          return;
+        }
+
+        const checkedOptions = Array.from(bestWorkOptions.querySelectorAll("input:checked"));
+        if (checkedOptions.length > 3) {
+          event.target.checked = false;
+          setSettingsStatus("Choose up to three best works.", true);
+        } else {
+          setSettingsStatus("");
+        }
+      });
       profileImageInput.addEventListener("change", async () => {
         const file = profileImageInput.files[0];
         profileImageRawDataUrl = file ? await fileToDataUrl(file) : "";
@@ -2140,6 +2189,7 @@
           passwordHash: await hashPassword(password),
           profileImageDataUrl: "",
           bio: "",
+          bestWorkIds: [],
           usernameChangedAt: new Date().toISOString(),
         };
         accounts.push(account);
@@ -2185,11 +2235,17 @@
           }
         }
 
+        if (profileImageRawDataUrl && !profileImageDataUrl) {
+          profileImageDataUrl = await cropProfileImageDataUrl();
+        }
+
+        const nextProfileImageDataUrl = profileImageDataUrl || currentAccount.profileImageDataUrl || "";
         const nextAccount = {
           ...currentAccount,
           username: username || currentAccount.username,
-          profileImageDataUrl,
+          profileImageDataUrl: nextProfileImageDataUrl,
           bio: profileBio.value.trim(),
+          bestWorkIds: selectedBestWorkIds(),
           usernameChangedAt: usernameChanged ? new Date().toISOString() : currentAccount.usernameChangedAt,
         };
 
@@ -2219,6 +2275,11 @@
         closeModal(accountModal);
         renderCatalogue();
       });
+      settingsSignOutButton.addEventListener("click", () => {
+        setCurrentAccount(null);
+        closeModal(settingsModal);
+        showCatalogue();
+      });
       allTab.addEventListener("click", () => {
         activeTab = "all";
         allTab.classList.add("is-active");
@@ -2239,12 +2300,12 @@
         }
       });
       profileView.addEventListener("click", (event) => {
-        const blueprintButton = event.target.closest("[data-profile-blueprint]");
-        if (!blueprintButton) {
+        const card = event.target.closest(".blueprint-card");
+        if (!card) {
           return;
         }
 
-        showDetail(blueprints.find((blueprint) => blueprint.id === blueprintButton.dataset.profileBlueprint));
+        showDetail(blueprints.find((blueprint) => blueprint.id === card.dataset.id));
       });
       detailMeta.addEventListener("click", (event) => {
         const profileButton = event.target.closest(".profile-link");
