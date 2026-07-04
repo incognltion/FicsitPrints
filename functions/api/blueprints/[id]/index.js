@@ -22,6 +22,7 @@ function rowToBlueprint(row) {
     description: row.description,
     author: row.author,
     ownerId: row.owner_id,
+    authorAvatar: row.author_avatar,
     downloads: row.downloads,
     category: row.category,
     tags: row.tags ? JSON.parse(row.tags) : [],
@@ -42,6 +43,8 @@ export async function onRequestPut({ request, env, params }) {
 
   const formData = await request.formData();
   const ownerId = String(formData.get("ownerId") || "").trim();
+  const author = String(formData.get("author") || existing.author).trim();
+  const authorAvatar = String(formData.get("authorAvatar") || existing.author_avatar || "").trim();
 
   if (!ownerId || ownerId !== existing.owner_id) {
     return json({ error: "This browser cannot update that blueprint." }, { status: 403 });
@@ -82,12 +85,14 @@ export async function onRequestPut({ request, env, params }) {
 
   await env.DB.prepare(
     `update blueprints
-     set name = ?, description = ?, category = ?, tags = ?, image_key = ?, file_name = ?, r2_key = ?
+     set name = ?, description = ?, author = ?, author_avatar = ?, category = ?, tags = ?, image_key = ?, file_name = ?, r2_key = ?
      where id = ?`
   )
     .bind(
       name || existing.name,
       description || existing.description,
+      author,
+      authorAvatar,
       tags[0] || existing.category,
       JSON.stringify(tags),
       imageKey,
@@ -98,7 +103,7 @@ export async function onRequestPut({ request, env, params }) {
     .run();
 
   const updated = await env.DB.prepare(
-    `select id, name, description, author, owner_id, downloads, category, tags, image_key, file_name, uploaded_at
+    `select id, name, description, author, owner_id, author_avatar, downloads, category, tags, image_key, file_name, uploaded_at
      from blueprints where id = ?`
   ).bind(params.id).first();
 

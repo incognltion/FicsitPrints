@@ -52,6 +52,35 @@
         font-weight: 800;
       }
 
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .account-pill {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        color: #c8d0dc;
+        font-weight: 700;
+      }
+
+      .account-pill.is-visible {
+        display: flex;
+      }
+
+      .avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: #0f1218;
+        object-fit: cover;
+      }
+
       .brand-mark {
         width: 38px;
         height: 38px;
@@ -185,7 +214,7 @@
       }
 
       .blueprint-card {
-        min-height: 260px;
+        min-height: 300px;
         border: 1px solid rgba(255, 255, 255, 0.12);
         border-radius: 8px;
         background: rgba(20, 24, 31, 0.82);
@@ -204,7 +233,7 @@
       }
 
       .blueprint-preview {
-        height: 130px;
+        height: 150px;
         display: grid;
         place-items: center;
         background:
@@ -220,12 +249,24 @@
       .blueprint-preview.has-image {
         background: #151a22;
         padding: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       }
 
       .blueprint-preview img {
         width: 100%;
         height: 100%;
         object-fit: cover;
+      }
+
+      .blueprint-author {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .blueprint-author .avatar {
+        width: 24px;
+        height: 24px;
       }
 
       .blueprint-body {
@@ -499,25 +540,19 @@
         border-radius: 6px;
         background: #0f1218;
         overflow: hidden;
+        cursor: grab;
+        user-select: none;
+      }
+
+      .crop-frame:active {
+        cursor: grabbing;
       }
 
       .crop-frame img {
-        width: 100%;
-        height: 100%;
+        width: 120%;
+        height: 120%;
         object-fit: cover;
-        transform-origin: center;
-      }
-
-      .crop-controls {
-        display: grid;
-        gap: 10px;
-      }
-
-      .crop-controls label {
-        display: grid;
-        gap: 6px;
-        color: #aeb8c6;
-        font-weight: 400;
+        pointer-events: none;
       }
 
       .detail-view {
@@ -579,6 +614,20 @@
         flex-wrap: wrap;
         gap: 8px;
         margin-bottom: 18px;
+      }
+
+      .detail-uploader {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+        color: #c8d0dc;
+        font-weight: 700;
+      }
+
+      .detail-uploader .avatar {
+        width: 44px;
+        height: 44px;
       }
 
       .detail-actions {
@@ -691,7 +740,14 @@
           <div class="brand-mark" aria-hidden="true">F</div>
           <span>FicsitPrints</span>
         </div>
-        <button id="open-upload" class="button" type="button">Upload Blueprint</button>
+        <div class="topbar-actions">
+          <div id="account-pill" class="account-pill">
+            <img id="account-avatar" class="avatar" alt="">
+            <span id="account-name"></span>
+          </div>
+          <button id="account-button" class="button secondary" type="button">Sign In / Create Account</button>
+          <button id="open-upload" class="button" type="button">Upload Blueprint</button>
+        </div>
       </header>
 
       <section id="hero" class="hero" aria-labelledby="page-title">
@@ -797,11 +853,7 @@
             <div class="crop-frame">
               <img id="crop-image" alt="">
             </div>
-            <div class="crop-controls">
-              <label>Zoom <input id="crop-zoom" type="range" min="1" max="2.5" step="0.05" value="1"></label>
-              <label>Horizontal crop <input id="crop-x" type="range" min="0" max="100" step="1" value="50"></label>
-              <label>Vertical crop <input id="crop-y" type="range" min="0" max="100" step="1" value="50"></label>
-            </div>
+            <p class="hint">Drag the image around to choose the crop.</p>
           </div>
         </div>
 
@@ -838,12 +890,50 @@
       </div>
     </div>
 
+    <div id="account-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="account-title">
+      <div class="dialog">
+        <div class="dialog-header">
+          <div>
+            <h2 id="account-title">Account</h2>
+            <p class="dialog-copy">Create an account or sign in before uploading blueprints.</p>
+          </div>
+          <button id="close-account" class="close" type="button" aria-label="Close account menu">X</button>
+        </div>
+
+        <div class="field">
+          <label for="account-username">Username</label>
+          <input id="account-username" class="text-input" type="text" autocomplete="username" placeholder="factory-builder">
+        </div>
+
+        <div class="field">
+          <label for="account-password">Password</label>
+          <input id="account-password" class="text-input" type="password" autocomplete="current-password">
+        </div>
+
+        <div class="field image-upload">
+          <label for="profile-image-input">Profile picture</label>
+          <input id="profile-image-input" class="text-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+          <div id="profile-preview" class="image-preview">Optional profile picture</div>
+        </div>
+
+        <p id="account-status" class="status" role="status" aria-live="polite"></p>
+
+        <div class="dialog-actions">
+          <button id="sign-out-button" class="button secondary" type="button">Sign Out</button>
+          <button id="sign-in-button" class="button secondary" type="button">Sign In</button>
+          <button id="create-account-button" class="button" type="button">Create Account</button>
+        </div>
+      </div>
+    </div>
+
     <script>
       const validExtensions = [".sbp", ".sbpcfg"];
       const legacyStorageKey = "ficsitprints.blueprints";
       const databaseName = "ficsitprints";
       const storeName = "blueprints";
       const ownerStorageKey = "ficsitprints.owner";
+      const accountsStorageKey = "ficsitprints.accounts";
+      const currentAccountStorageKey = "ficsitprints.currentAccount";
       const apiBase = "/api/blueprints";
 
       const hero = document.querySelector("#hero");
@@ -863,6 +953,20 @@
       const detailMeta = document.querySelector("#detail-meta");
       const editBlueprint = document.querySelector("#edit-blueprint");
       const search = document.querySelector("#search");
+      const accountButton = document.querySelector("#account-button");
+      const accountModal = document.querySelector("#account-modal");
+      const closeAccount = document.querySelector("#close-account");
+      const accountUsername = document.querySelector("#account-username");
+      const accountPassword = document.querySelector("#account-password");
+      const accountStatus = document.querySelector("#account-status");
+      const accountPill = document.querySelector("#account-pill");
+      const accountAvatar = document.querySelector("#account-avatar");
+      const accountName = document.querySelector("#account-name");
+      const signInButton = document.querySelector("#sign-in-button");
+      const createAccountButton = document.querySelector("#create-account-button");
+      const signOutButton = document.querySelector("#sign-out-button");
+      const profileImageInput = document.querySelector("#profile-image-input");
+      const profilePreview = document.querySelector("#profile-preview");
       const openUpload = document.querySelector("#open-upload");
       const uploadModal = document.querySelector("#upload-modal");
       const closeUpload = document.querySelector("#close-upload");
@@ -888,19 +992,20 @@
       const imagePreview = document.querySelector("#image-preview");
       const cropWorkspace = document.querySelector("#crop-workspace");
       const cropImage = document.querySelector("#crop-image");
-      const cropZoom = document.querySelector("#crop-zoom");
-      const cropX = document.querySelector("#crop-x");
-      const cropY = document.querySelector("#crop-y");
       let blueprints = [];
       let selectedFile = null;
       let selectedImageFile = null;
       let selectedImageRawDataUrl = "";
       let selectedImageDataUrl = "";
+      let profileImageDataUrl = "";
       let selectedBlueprint = null;
       let editingBlueprintId = "";
       let activeTab = "all";
       let sharedStorageEnabled = false;
       const ownerId = getOwnerId();
+      let currentAccount = getCurrentAccount();
+      let cropPosition = { x: 50, y: 50 };
+      let cropDrag = null;
       const availableTags = [
         "Power",
         "Factory",
@@ -931,6 +1036,73 @@
         return nextOwner;
       }
 
+      function getAccounts() {
+        try {
+          return JSON.parse(localStorage.getItem(accountsStorageKey)) || [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveAccounts(accounts) {
+        localStorage.setItem(accountsStorageKey, JSON.stringify(accounts));
+      }
+
+      function getCurrentAccount() {
+        try {
+          return JSON.parse(localStorage.getItem(currentAccountStorageKey)) || null;
+        } catch {
+          return null;
+        }
+      }
+
+      function setCurrentAccount(account) {
+        currentAccount = account;
+        if (account) {
+          localStorage.setItem(currentAccountStorageKey, JSON.stringify(account));
+        } else {
+          localStorage.removeItem(currentAccountStorageKey);
+        }
+        renderAccount();
+        renderCatalogue();
+      }
+
+      async function hashPassword(password) {
+        const bytes = new TextEncoder().encode(password);
+        const digest = await crypto.subtle.digest("SHA-256", bytes);
+        return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+      }
+
+      function setAccountStatus(message, isError = false) {
+        accountStatus.textContent = message;
+        accountStatus.classList.toggle("error", isError);
+      }
+
+      function renderAccount() {
+        if (!currentAccount) {
+          accountPill.classList.remove("is-visible");
+          accountButton.textContent = "Sign In / Create Account";
+          return;
+        }
+
+        accountPill.classList.add("is-visible");
+        accountName.textContent = currentAccount.username;
+        accountAvatar.style.display = currentAccount.profileImageDataUrl ? "block" : "none";
+        accountAvatar.src = currentAccount.profileImageDataUrl || "";
+        accountAvatar.alt = `${currentAccount.username} profile picture`;
+        accountButton.textContent = "Account";
+      }
+
+      function requireAccount() {
+        if (currentAccount) {
+          return true;
+        }
+
+        setAccountStatus("Create an account or sign in before uploading.", true);
+        openModal(accountModal);
+        return false;
+      }
+
       function normalizeBlueprint(blueprint) {
         return {
           id: blueprint.id || crypto.randomUUID(),
@@ -938,6 +1110,7 @@
           description: blueprint.description || "Local test upload.",
           author: blueprint.author || "You",
           ownerId: blueprint.ownerId || "",
+          authorAvatar: blueprint.authorAvatar || "",
           downloads: Number(blueprint.downloads || 0),
           category: blueprint.category || "New",
           tags: Array.isArray(blueprint.tags) ? blueprint.tags : [],
@@ -1057,7 +1230,6 @@
         }
 
         const sourceImage = await loadImage(selectedImageRawDataUrl);
-        const zoom = Number(cropZoom.value);
         const outputWidth = 1280;
         const outputHeight = 720;
         const sourceAspect = sourceImage.width / sourceImage.height;
@@ -1071,13 +1243,10 @@
           cropHeight = sourceImage.width / outputAspect;
         }
 
-        cropWidth /= zoom;
-        cropHeight /= zoom;
-
         const maxX = sourceImage.width - cropWidth;
         const maxY = sourceImage.height - cropHeight;
-        const sourceX = maxX * (Number(cropX.value) / 100);
-        const sourceY = maxY * (Number(cropY.value) / 100);
+        const sourceX = maxX * (cropPosition.x / 100);
+        const sourceY = maxY * (cropPosition.y / 100);
         const canvas = document.createElement("canvas");
         canvas.width = outputWidth;
         canvas.height = outputHeight;
@@ -1091,8 +1260,7 @@
           return;
         }
 
-        cropImage.style.transform = `scale(${cropZoom.value})`;
-        cropImage.style.objectPosition = `${cropX.value}% ${cropY.value}%`;
+        cropImage.style.objectPosition = `${cropPosition.x}% ${cropPosition.y}%`;
         selectedImageDataUrl = await cropImageDataUrl();
         imagePreview.innerHTML = `<img src="${selectedImageDataUrl}" alt="">`;
       }
@@ -1208,6 +1376,9 @@
         const tags = blueprint.tags.length
           ? blueprint.tags.slice(0, 4).map((tag) => `<span class="stat">${escapeHtml(tag)}</span>`).join("")
           : `<span class="stat">${escapeHtml(blueprint.category)}</span>`;
+        const author = blueprint.authorAvatar
+          ? `<span class="blueprint-author"><img class="avatar" src="${escapeHtml(blueprint.authorAvatar)}" alt="">${escapeHtml(blueprint.author)}</span>`
+          : `by ${escapeHtml(blueprint.author)}`;
         card.innerHTML = `
           ${preview}
           <div class="blueprint-body">
@@ -1215,7 +1386,7 @@
             <p>${escapeHtml(blueprint.description)}</p>
             <div class="blueprint-stats">
               ${tags}
-              <span class="stat">by ${escapeHtml(blueprint.author)}</span>
+              <span class="stat">${author}</span>
               <span class="stat">${escapeHtml(blueprint.downloads)} downloads</span>
             </div>
           </div>
@@ -1226,7 +1397,7 @@
       function renderCatalogue() {
         const query = search.value.trim().toLowerCase();
         const filteredBlueprints = blueprints.filter((blueprint) => {
-          const matchesTab = activeTab === "all" || blueprint.ownerId === ownerId || blueprint.author === "You";
+          const matchesTab = activeTab === "all" || (currentAccount && blueprint.ownerId === currentAccount.id);
           const searchable = [blueprint.name, blueprint.description, blueprint.author, blueprint.category, ...blueprint.tags]
             .join(" ")
             .toLowerCase()
@@ -1275,11 +1446,14 @@
           ? blueprint.tags.map((tag) => `<span class="stat">${escapeHtml(tag)}</span>`).join("")
           : `<span class="stat">${escapeHtml(blueprint.category)}</span>`;
         detailMeta.innerHTML = `
-          <span class="stat">Uploaded by ${escapeHtml(blueprint.author)}</span>
+          <div class="detail-uploader">
+            ${blueprint.authorAvatar ? `<img class="avatar" src="${escapeHtml(blueprint.authorAvatar)}" alt="">` : ""}
+            <span>Uploaded by ${escapeHtml(blueprint.author)}</span>
+          </div>
           <span class="stat">${new Date(blueprint.uploadedAt).toLocaleDateString()}</span>
           <span class="stat">${escapeHtml(blueprint.downloads)} downloads</span>
         `;
-        editBlueprint.style.display = blueprint.ownerId === ownerId || blueprint.author === "You" ? "block" : "none";
+        editBlueprint.style.display = currentAccount && blueprint.ownerId === currentAccount.id ? "block" : "none";
       }
 
       function openModal(modal) {
@@ -1316,11 +1490,15 @@
       }
 
       function openEditMenu(blueprint) {
+        if (!currentAccount || blueprint.ownerId !== currentAccount.id) {
+          return;
+        }
+
         editingBlueprintId = blueprint.id;
         selectedFile = blueprint.fileBlob || null;
         selectedImageFile = blueprint.imageBlob || null;
         selectedImageDataUrl = blueprint.imageDataUrl || blueprint.imageUrl || "";
-        selectedImageRawDataUrl = selectedImageDataUrl;
+        selectedImageRawDataUrl = blueprint.imageDataUrl || "";
         blueprintName.value = blueprint.name;
         blueprintDescription.value = blueprint.description;
         fileSummary.textContent = blueprint.fileName ? `Updating ${blueprint.fileName}` : "Updating blueprint";
@@ -1329,9 +1507,9 @@
         });
         imageInput.value = "";
         imagePreview.innerHTML = selectedImageDataUrl ? `<img src="${selectedImageDataUrl}" alt="">` : "Optional image preview";
-        cropWorkspace.classList.toggle("is-visible", Boolean(selectedImageDataUrl));
-        if (selectedImageDataUrl) {
-          cropImage.src = selectedImageDataUrl;
+        cropWorkspace.classList.toggle("is-visible", Boolean(selectedImageRawDataUrl));
+        if (selectedImageRawDataUrl) {
+          cropImage.src = selectedImageRawDataUrl;
         }
         setPublishStatus("");
         publishButton.textContent = "Update";
@@ -1426,6 +1604,7 @@
       }
 
       loadBlueprints();
+      renderAccount();
 
       tagGrid.innerHTML = availableTags.map((tag) => `
         <label class="tag-option">
@@ -1439,6 +1618,67 @@
       }
 
       search.addEventListener("input", renderCatalogue);
+      accountButton.addEventListener("click", () => {
+        setAccountStatus("");
+        accountUsername.value = currentAccount?.username || "";
+        accountPassword.value = "";
+        profileImageDataUrl = currentAccount?.profileImageDataUrl || "";
+        profilePreview.innerHTML = profileImageDataUrl ? `<img src="${profileImageDataUrl}" alt="">` : "Optional profile picture";
+        openModal(accountModal);
+      });
+      closeAccount.addEventListener("click", () => closeModal(accountModal));
+      profileImageInput.addEventListener("change", async () => {
+        const file = profileImageInput.files[0];
+        profileImageDataUrl = file ? await fileToDataUrl(file) : "";
+        profilePreview.innerHTML = profileImageDataUrl ? `<img src="${profileImageDataUrl}" alt="">` : "Optional profile picture";
+      });
+      createAccountButton.addEventListener("click", async () => {
+        const username = accountUsername.value.trim();
+        const password = accountPassword.value;
+        const accounts = getAccounts();
+
+        if (!username || !password) {
+          setAccountStatus("Add a username and password.", true);
+          return;
+        }
+
+        if (accounts.some((account) => account.username.toLowerCase() === username.toLowerCase())) {
+          setAccountStatus("That username is already taken.", true);
+          return;
+        }
+
+        const account = {
+          id: crypto.randomUUID(),
+          username,
+          passwordHash: await hashPassword(password),
+          profileImageDataUrl,
+        };
+        accounts.push(account);
+        saveAccounts(accounts);
+        setCurrentAccount(account);
+        setAccountStatus("Account created. You can upload now.");
+        closeModal(accountModal);
+      });
+      signInButton.addEventListener("click", async () => {
+        const username = accountUsername.value.trim();
+        const passwordHash = await hashPassword(accountPassword.value);
+        const account = getAccounts().find((savedAccount) => {
+          return savedAccount.username.toLowerCase() === username.toLowerCase() && savedAccount.passwordHash === passwordHash;
+        });
+
+        if (!account) {
+          setAccountStatus("Username or password is incorrect.", true);
+          return;
+        }
+
+        setCurrentAccount(account);
+        closeModal(accountModal);
+      });
+      signOutButton.addEventListener("click", () => {
+        setCurrentAccount(null);
+        closeModal(accountModal);
+        renderCatalogue();
+      });
       allTab.addEventListener("click", () => {
         activeTab = "all";
         allTab.classList.add("is-active");
@@ -1461,6 +1701,9 @@
         button.addEventListener("click", () => downloadBlueprint(button.dataset.detailDownload));
       });
       openUpload.addEventListener("click", () => {
+        if (!requireAccount()) {
+          return;
+        }
         setStatus("");
         openModal(uploadModal);
       });
@@ -1496,18 +1739,45 @@
         }
 
         selectedImageRawDataUrl = await fileToDataUrl(selectedImageFile);
+        cropPosition = { x: 50, y: 50 };
         cropImage.src = selectedImageRawDataUrl;
-        cropZoom.value = "1";
-        cropX.value = "50";
-        cropY.value = "50";
+        cropImage.style.objectPosition = "50% 50%";
         cropWorkspace.classList.add("is-visible");
         selectedImageDataUrl = await cropImageDataUrl();
         imagePreview.innerHTML = `<img src="${selectedImageDataUrl}" alt="">`;
       });
 
-      for (const cropControl of [cropZoom, cropX, cropY]) {
-        cropControl.addEventListener("input", updateCropPreview);
-      }
+      cropWorkspace.addEventListener("pointerdown", (event) => {
+        if (!selectedImageRawDataUrl) {
+          return;
+        }
+
+        cropDrag = {
+          startX: event.clientX,
+          startY: event.clientY,
+          originX: cropPosition.x,
+          originY: cropPosition.y,
+        };
+        cropWorkspace.setPointerCapture(event.pointerId);
+      });
+      cropWorkspace.addEventListener("pointermove", (event) => {
+        if (!cropDrag) {
+          return;
+        }
+
+        const rect = cropWorkspace.getBoundingClientRect();
+        cropPosition = {
+          x: Math.max(0, Math.min(100, cropDrag.originX - ((event.clientX - cropDrag.startX) / rect.width) * 100)),
+          y: Math.max(0, Math.min(100, cropDrag.originY - ((event.clientY - cropDrag.startY) / rect.height) * 100)),
+        };
+        updateCropPreview();
+      });
+      cropWorkspace.addEventListener("pointerup", () => {
+        cropDrag = null;
+      });
+      cropWorkspace.addEventListener("pointercancel", () => {
+        cropDrag = null;
+      });
 
       dropZone.addEventListener("dragover", (event) => {
         event.preventDefault();
@@ -1525,13 +1795,19 @@
       });
 
       publishButton.addEventListener("click", async () => {
+        if (!requireAccount()) {
+          return;
+        }
+
         const name = blueprintName.value.trim();
         const description = blueprintDescription.value.trim();
         const tags = selectedTags();
         const existingBlueprint = editingBlueprintId
           ? blueprints.find((blueprint) => blueprint.id === editingBlueprintId)
           : null;
-        const croppedImageBlob = selectedImageDataUrl ? dataUrlToBlob(selectedImageDataUrl) : null;
+        const croppedImageBlob = selectedImageDataUrl && selectedImageDataUrl.startsWith("data:")
+          ? dataUrlToBlob(selectedImageDataUrl)
+          : null;
         if (!name) {
           setPublishStatus("Add a blueprint name before publishing.", true);
           blueprintName.focus();
@@ -1543,8 +1819,9 @@
           id: existingBlueprint ? existingBlueprint.id : crypto.randomUUID(),
           name,
           description: description || (selectedFile ? `Local test upload from ${selectedFile.name}.` : "Local test upload."),
-          author: existingBlueprint?.author || "You",
-          ownerId,
+          author: currentAccount.username,
+          ownerId: currentAccount.id,
+          authorAvatar: currentAccount.profileImageDataUrl || "",
           downloads: Number(existingBlueprint?.downloads || 0),
           category: tags[0] || "New",
           tags,
@@ -1568,7 +1845,9 @@
             formData.append("name", name);
             formData.append("description", description);
             formData.append("tags", JSON.stringify(tags));
-            formData.append("ownerId", ownerId);
+            formData.append("ownerId", currentAccount.id);
+            formData.append("author", currentAccount.username);
+            formData.append("authorAvatar", currentAccount.profileImageDataUrl || "");
             if (selectedFile) {
               formData.append("file", selectedFile);
             }
@@ -1619,7 +1898,7 @@
         button.addEventListener("click", () => downloadBlueprint(button.dataset.extension));
       });
 
-      for (const modal of [uploadModal, publishModal, downloadModal]) {
+      for (const modal of [uploadModal, publishModal, downloadModal, accountModal]) {
         modal.addEventListener("click", (event) => {
           if (event.target === modal) {
             closeModal(modal);

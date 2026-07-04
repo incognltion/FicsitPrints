@@ -4,6 +4,7 @@ create table if not exists blueprints (
   description text not null,
   author text not null,
   owner_id text not null default '',
+  author_avatar text not null default '',
   downloads integer not null default 0,
   category text not null,
   tags text not null default '[]',
