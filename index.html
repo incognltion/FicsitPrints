@@ -815,6 +815,71 @@
         margin-top: 18px;
       }
 
+      .materials-section {
+        margin-top: 24px;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        padding-top: 22px;
+      }
+
+      .materials-section h3 {
+        margin: 0 0 14px;
+        font-size: 24px;
+      }
+
+      .materials-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 10px;
+      }
+
+      .material-row,
+      .material-cost {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.05);
+        min-width: 0;
+      }
+
+      .material-row {
+        padding: 10px;
+      }
+
+      .material-cost {
+        padding: 12px;
+      }
+
+      .material-icon {
+        width: 34px;
+        height: 34px;
+        object-fit: contain;
+        flex: 0 0 auto;
+      }
+
+      .material-name {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .material-row input {
+        width: 78px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 5px;
+        background: rgba(12, 15, 20, 0.92);
+        color: #f7f9fc;
+        padding: 8px;
+      }
+
+      .material-empty {
+        color: #aeb8c6;
+        margin: 0;
+      }
+
       .dialog-actions {
         display: flex;
         justify-content: flex-end;
@@ -982,6 +1047,10 @@
             </div>
           </div>
         </div>
+        <section class="materials-section" aria-labelledby="detail-materials-title">
+          <h3 id="detail-materials-title">Build costs</h3>
+          <div id="detail-materials" class="materials-grid"></div>
+        </section>
       </section>
 
       <section id="profile-view" class="detail-view" aria-live="polite">
@@ -1058,6 +1127,12 @@
         <div class="field">
           <label>Tags</label>
           <div id="tag-grid" class="tag-grid" aria-label="Blueprint tags"></div>
+        </div>
+
+        <div class="field">
+          <label>Build costs</label>
+          <div id="material-grid" class="materials-grid" aria-label="Blueprint build costs"></div>
+          <p class="hint">Add the total materials needed to build this blueprint.</p>
         </div>
 
         <div class="field image-upload">
@@ -1208,6 +1283,7 @@
       const detailDescription = document.querySelector("#detail-description");
       const detailTags = document.querySelector("#detail-tags");
       const detailMeta = document.querySelector("#detail-meta");
+      const detailMaterials = document.querySelector("#detail-materials");
       const editBlueprint = document.querySelector("#edit-blueprint");
       const profileView = document.querySelector("#profile-view");
       const backFromProfile = document.querySelector("#back-from-profile");
@@ -1265,6 +1341,7 @@
       const fileSummary = document.querySelector("#file-summary");
       const publishStatus = document.querySelector("#publish-status");
       const tagGrid = document.querySelector("#tag-grid");
+      const materialGrid = document.querySelector("#material-grid");
       const imageInput = document.querySelector("#image-input");
       const imagePreview = document.querySelector("#image-preview");
       const cropWorkspace = document.querySelector("#crop-workspace");
@@ -1303,6 +1380,38 @@
         "Starter",
         "Trains",
         "Pipes",
+      ];
+      const materialCatalog = [
+        { id: "iron-plate", name: "Iron Plate", file: "Iron_Plate.png" },
+        { id: "iron-rod", name: "Iron Rod", file: "Iron_Rod.png" },
+        { id: "screw", name: "Screw", file: "Screw.png" },
+        { id: "wire", name: "Wire", file: "Wire.png" },
+        { id: "cable", name: "Cable", file: "Cable.png" },
+        { id: "concrete", name: "Concrete", file: "Concrete.png" },
+        { id: "copper-sheet", name: "Copper Sheet", file: "Copper_Sheet.png" },
+        { id: "reinforced-iron-plate", name: "Reinforced Iron Plate", file: "Reinforced_Iron_Plate.png" },
+        { id: "rotor", name: "Rotor", file: "Rotor.png" },
+        { id: "modular-frame", name: "Modular Frame", file: "Modular_Frame.png" },
+        { id: "steel-beam", name: "Steel Beam", file: "Steel_Beam.png" },
+        { id: "steel-pipe", name: "Steel Pipe", file: "Steel_Pipe.png" },
+        { id: "encased-industrial-beam", name: "Encased Industrial Beam", file: "Encased_Industrial_Beam.png" },
+        { id: "motor", name: "Motor", file: "Motor.png" },
+        { id: "quickwire", name: "Quickwire", file: "Quickwire.png" },
+        { id: "plastic", name: "Plastic", file: "Plastic.png" },
+        { id: "rubber", name: "Rubber", file: "Rubber.png" },
+        { id: "alclad-aluminum-sheet", name: "Alclad Aluminum Sheet", file: "Alclad_Aluminum_Sheet.png" },
+        { id: "aluminum-casing", name: "Aluminum Casing", file: "Aluminum_Casing.png" },
+        { id: "circuit-board", name: "Circuit Board", file: "Circuit_Board.png" },
+        { id: "computer", name: "Computer", file: "Computer.png" },
+        { id: "heavy-modular-frame", name: "Heavy Modular Frame", file: "Heavy_Modular_Frame.png" },
+        { id: "high-speed-connector", name: "High-Speed Connector", file: "High-Speed_Connector.png" },
+        { id: "ai-limiter", name: "AI Limiter", file: "AI_Limiter.png" },
+        { id: "crystal-oscillator", name: "Crystal Oscillator", file: "Crystal_Oscillator.png" },
+        { id: "radio-control-unit", name: "Radio Control Unit", file: "Radio_Control_Unit.png" },
+        { id: "fused-modular-frame", name: "Fused Modular Frame", file: "Fused_Modular_Frame.png" },
+        { id: "cooling-system", name: "Cooling System", file: "Cooling_System.png" },
+        { id: "supercomputer", name: "Supercomputer", file: "Supercomputer.png" },
+        { id: "turbo-motor", name: "Turbo Motor", file: "Turbo_Motor.png" },
       ];
 
       function getOwnerId() {
@@ -1549,6 +1658,7 @@
           downloads: Number(blueprint.downloads || 0),
           category: blueprint.category || "New",
           tags: Array.isArray(blueprint.tags) ? blueprint.tags : [],
+          materials: normalizeMaterials(blueprint.materials),
           imageUrl: blueprint.imageUrl || "",
           imageDataUrl: blueprint.imageDataUrl || "",
           imageBlob: blueprint.imageBlob || null,
@@ -1830,6 +1940,90 @@
         });
       }
 
+      function materialIconUrl(fileName) {
+        return `https://satisfactory.fandom.com/wiki/Special:Redirect/file/${encodeURIComponent(fileName)}`;
+      }
+
+      function materialDefinitionFor(material) {
+        return materialCatalog.find((catalogItem) => catalogItem.id === material.id)
+          || { id: material.id, name: material.name || "Unknown material", file: "" };
+      }
+
+      function normalizeMaterials(materials) {
+        let parsedMaterials = materials;
+        if (typeof materials === "string") {
+          try {
+            parsedMaterials = JSON.parse(materials || "[]");
+          } catch {
+            parsedMaterials = [];
+          }
+        }
+
+        if (!Array.isArray(parsedMaterials)) {
+          return [];
+        }
+
+        return parsedMaterials
+          .map((material) => {
+            const definition = materialDefinitionFor(material);
+            const quantity = Number(material.quantity || 0);
+            return {
+              id: definition.id,
+              name: definition.name,
+              file: definition.file,
+              quantity,
+            };
+          })
+          .filter((material) => material.quantity > 0);
+      }
+
+      function renderMaterialInputs() {
+        materialGrid.innerHTML = materialCatalog.map((material) => `
+          <label class="material-row">
+            <img class="material-icon" src="${materialIconUrl(material.file)}" alt="" loading="lazy">
+            <span class="material-name">${escapeHtml(material.name)}</span>
+            <input type="number" min="0" step="1" inputmode="numeric" data-material-id="${escapeHtml(material.id)}" aria-label="${escapeHtml(material.name)} quantity">
+          </label>
+        `).join("");
+      }
+
+      function setMaterialInputs(materials = []) {
+        const materialMap = new Map(normalizeMaterials(materials).map((material) => [material.id, material.quantity]));
+        materialGrid.querySelectorAll("[data-material-id]").forEach((input) => {
+          input.value = materialMap.get(input.dataset.materialId) || "";
+        });
+      }
+
+      function selectedMaterials() {
+        return Array.from(materialGrid.querySelectorAll("[data-material-id]"))
+          .map((input) => {
+            const definition = materialCatalog.find((material) => material.id === input.dataset.materialId);
+            return {
+              id: definition.id,
+              name: definition.name,
+              file: definition.file,
+              quantity: Math.max(0, Math.floor(Number(input.value || 0))),
+            };
+          })
+          .filter((material) => material.quantity > 0);
+      }
+
+      function renderDetailMaterials(materials = []) {
+        const normalizedMaterials = normalizeMaterials(materials);
+        if (!normalizedMaterials.length) {
+          detailMaterials.innerHTML = `<p class="material-empty">No materials listed yet.</p>`;
+          return;
+        }
+
+        detailMaterials.innerHTML = normalizedMaterials.map((material) => `
+          <div class="material-cost">
+            ${material.file ? `<img class="material-icon" src="${materialIconUrl(material.file)}" alt="" loading="lazy">` : ""}
+            <span class="material-name">${escapeHtml(material.name)}</span>
+            <strong>${escapeHtml(material.quantity)}</strong>
+          </div>
+        `).join("");
+      }
+
       function cardFor(blueprint) {
         const card = document.createElement("button");
         card.type = "button";
@@ -1935,6 +2129,7 @@
         detailTags.innerHTML = blueprint.tags.length
           ? blueprint.tags.map((tag) => `<span class="stat">${escapeHtml(tag)}</span>`).join("")
           : `<span class="stat">${escapeHtml(blueprint.category)}</span>`;
+        renderDetailMaterials(blueprint.materials);
         detailMeta.innerHTML = `
           <div class="detail-uploader">
             ${blueprint.authorAvatar ? `<img class="avatar" src="${escapeHtml(blueprint.authorAvatar)}" alt="">` : ""}
@@ -1967,6 +2162,7 @@
         tagGrid.querySelectorAll("input").forEach((input) => {
           input.checked = false;
         });
+        setMaterialInputs();
         selectedImageFile = null;
         selectedImageRawDataUrl = "";
         selectedImageDataUrl = "";
@@ -1999,6 +2195,7 @@
         tagGrid.querySelectorAll("input").forEach((input) => {
           input.checked = blueprint.tags.includes(input.value);
         });
+        setMaterialInputs(blueprint.materials);
         imageInput.value = "";
         imagePreview.innerHTML = selectedImageDataUrl ? `<img src="${selectedImageDataUrl}" alt="">` : "Optional image preview";
         cropWorkspace.classList.toggle("is-visible", Boolean(selectedImageRawDataUrl));
@@ -2106,6 +2303,7 @@
           <span>${escapeHtml(tag)}</span>
         </label>
       `).join("");
+      renderMaterialInputs();
 
       function selectedTags() {
         return Array.from(tagGrid.querySelectorAll("input:checked")).map((input) => input.value);
@@ -2457,6 +2655,7 @@
         const name = blueprintName.value.trim();
         const description = blueprintDescription.value.trim();
         const tags = selectedTags();
+        const materials = selectedMaterials();
         const existingBlueprint = editingBlueprintId
           ? blueprints.find((blueprint) => blueprint.id === editingBlueprintId)
           : null;
@@ -2480,6 +2679,7 @@
           downloads: Number(existingBlueprint?.downloads || 0),
           category: tags[0] || "New",
           tags,
+          materials,
           imageUrl: sharedStorageEnabled ? "" : selectedImageDataUrl,
           imageDataUrl: selectedImageDataUrl,
           imageBlob: croppedImageBlob || existingBlueprint?.imageBlob || null,
@@ -2500,6 +2700,7 @@
             formData.append("name", name);
             formData.append("description", description);
             formData.append("tags", JSON.stringify(tags));
+            formData.append("materials", JSON.stringify(materials));
             formData.append("ownerId", currentAccount.id);
             formData.append("author", currentAccount.username);
             formData.append("authorAvatar", currentAccount.profileImageDataUrl || "");

@@ -26,6 +26,7 @@ function rowToBlueprint(row) {
     downloads: row.downloads,
     category: row.category,
     tags: row.tags ? JSON.parse(row.tags) : [],
+    materials: row.materials ? JSON.parse(row.materials) : [],
     imageUrl: row.image_key ? `/api/blueprints/${row.id}/image` : "",
     fileName: row.file_name,
     uploadedAt: row.uploaded_at,
@@ -53,6 +54,9 @@ export async function onRequestPut({ request, env, params }) {
   const name = String(formData.get("name") || "").trim();
   const description = String(formData.get("description") || "").trim();
   const tags = JSON.parse(String(formData.get("tags") || "[]")).filter((tag) => typeof tag === "string");
+  const materials = JSON.parse(String(formData.get("materials") || "[]")).filter((material) => {
+    return material && typeof material.id === "string" && Number(material.quantity) > 0;
+  });
   const file = formData.get("file");
   const image = formData.get("image");
   let r2Key = existing.r2_key;
@@ -85,7 +89,7 @@ export async function onRequestPut({ request, env, params }) {
 
   await env.DB.prepare(
     `update blueprints
-     set name = ?, description = ?, author = ?, author_avatar = ?, category = ?, tags = ?, image_key = ?, file_name = ?, r2_key = ?
+     set name = ?, description = ?, author = ?, author_avatar = ?, category = ?, tags = ?, materials = ?, image_key = ?, file_name = ?, r2_key = ?
      where id = ?`
   )
     .bind(
@@ -95,6 +99,7 @@ export async function onRequestPut({ request, env, params }) {
       authorAvatar,
       tags[0] || existing.category,
       JSON.stringify(tags),
+      JSON.stringify(materials),
       imageKey,
       fileName,
       r2Key,
@@ -103,7 +108,7 @@ export async function onRequestPut({ request, env, params }) {
     .run();
 
   const updated = await env.DB.prepare(
-    `select id, name, description, author, owner_id, author_avatar, downloads, category, tags, image_key, file_name, uploaded_at
+    `select id, name, description, author, owner_id, author_avatar, downloads, category, tags, materials, image_key, file_name, uploaded_at
      from blueprints where id = ?`
   ).bind(params.id).first();
 

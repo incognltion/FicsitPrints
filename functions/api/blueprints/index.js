@@ -26,6 +26,7 @@ function rowToBlueprint(row) {
     downloads: row.downloads,
     category: row.category,
     tags: row.tags ? JSON.parse(row.tags) : [],
+    materials: row.materials ? JSON.parse(row.materials) : [],
     imageUrl: row.image_key ? `/api/blueprints/${row.id}/image` : "",
     fileName: row.file_name,
     uploadedAt: row.uploaded_at,
@@ -34,7 +35,7 @@ function rowToBlueprint(row) {
 
 export async function onRequestGet({ env }) {
   const { results } = await env.DB.prepare(
-    `select id, name, description, author, owner_id, author_avatar, downloads, category, tags, image_key, file_name, uploaded_at
+    `select id, name, description, author, owner_id, author_avatar, downloads, category, tags, materials, image_key, file_name, uploaded_at
      from blueprints
      order by uploaded_at desc`
   ).all();
@@ -47,6 +48,9 @@ export async function onRequestPost({ request, env }) {
   const name = String(formData.get("name") || "").trim();
   const description = String(formData.get("description") || "").trim();
   const tags = JSON.parse(String(formData.get("tags") || "[]")).filter((tag) => typeof tag === "string");
+  const materials = JSON.parse(String(formData.get("materials") || "[]")).filter((material) => {
+    return material && typeof material.id === "string" && Number(material.quantity) > 0;
+  });
   const ownerId = String(formData.get("ownerId") || "").trim();
   const author = String(formData.get("author") || "Community").trim();
   const authorAvatar = String(formData.get("authorAvatar") || "").trim();
@@ -95,6 +99,7 @@ export async function onRequestPost({ request, env }) {
     downloads: 0,
     category: tags[0] || "New",
     tags,
+    materials,
     imageUrl: imageKey ? `/api/blueprints/${id}/image` : "",
     fileName: file.name,
     uploadedAt,
@@ -102,8 +107,8 @@ export async function onRequestPost({ request, env }) {
 
   await env.DB.prepare(
     `insert into blueprints
-      (id, name, description, author, owner_id, author_avatar, downloads, category, tags, image_key, file_name, r2_key, uploaded_at)
-     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (id, name, description, author, owner_id, author_avatar, downloads, category, tags, materials, image_key, file_name, r2_key, uploaded_at)
+     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       blueprint.id,
@@ -115,6 +120,7 @@ export async function onRequestPost({ request, env }) {
       blueprint.downloads,
       blueprint.category,
       JSON.stringify(blueprint.tags),
+      JSON.stringify(blueprint.materials),
       imageKey,
       blueprint.fileName,
       r2Key,
