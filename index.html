@@ -66,6 +66,7 @@
         gap: 8px;
         color: #c8d0dc;
         font-weight: 700;
+        min-width: 0;
       }
 
       .account-pill.is-visible {
@@ -75,6 +76,7 @@
       .avatar {
         width: 34px;
         height: 34px;
+        flex: 0 0 auto;
         border-radius: 50%;
         border: 1px solid rgba(255, 255, 255, 0.16);
         background: #0f1218;
@@ -215,6 +217,8 @@
 
       .blueprint-card {
         min-height: 300px;
+        display: grid;
+        grid-template-rows: 150px minmax(0, 1fr);
         border: 1px solid rgba(255, 255, 255, 0.12);
         border-radius: 8px;
         background: rgba(20, 24, 31, 0.82);
@@ -234,6 +238,7 @@
 
       .blueprint-preview {
         height: 150px;
+        min-height: 150px;
         display: grid;
         place-items: center;
         background:
@@ -244,6 +249,7 @@
         color: #ffb15d;
         font-size: 32px;
         font-weight: 800;
+        overflow: hidden;
       }
 
       .blueprint-preview.has-image {
@@ -256,12 +262,16 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
+        object-position: center;
+        display: block;
       }
 
       .blueprint-author {
         display: flex;
         align-items: center;
         gap: 8px;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .blueprint-author .avatar {
@@ -269,19 +279,34 @@
         height: 24px;
       }
 
+      .blueprint-author span,
+      .account-pill span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
       .blueprint-body {
         padding: 16px;
+        min-width: 0;
+        overflow: hidden;
       }
 
       .blueprint-body h2 {
         margin: 0 0 8px;
         font-size: 21px;
+        overflow-wrap: anywhere;
       }
 
       .blueprint-body p {
         margin: 0 0 14px;
         color: #aeb8c6;
         line-height: 1.45;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
 
       .blueprint-stats {
@@ -296,6 +321,9 @@
         background: rgba(255, 255, 255, 0.08);
         color: #cfd6e0;
         font-size: 13px;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
       }
 
       .empty-state {
@@ -576,6 +604,7 @@
 
       .detail-image {
         min-height: 360px;
+        aspect-ratio: 16 / 9;
         border-radius: 8px;
         background:
           linear-gradient(90deg, rgba(255, 159, 46, 0.22) 1px, transparent 1px),
@@ -594,6 +623,7 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
+        display: block;
       }
 
       .detail-panel h2 {
@@ -623,6 +653,8 @@
         margin-bottom: 18px;
         color: #c8d0dc;
         font-weight: 700;
+        width: 100%;
+        min-width: 0;
       }
 
       .detail-uploader .avatar {
@@ -1377,7 +1409,7 @@
           ? blueprint.tags.slice(0, 4).map((tag) => `<span class="stat">${escapeHtml(tag)}</span>`).join("")
           : `<span class="stat">${escapeHtml(blueprint.category)}</span>`;
         const author = blueprint.authorAvatar
-          ? `<span class="blueprint-author"><img class="avatar" src="${escapeHtml(blueprint.authorAvatar)}" alt="">${escapeHtml(blueprint.author)}</span>`
+          ? `<span class="blueprint-author"><img class="avatar" src="${escapeHtml(blueprint.authorAvatar)}" alt=""><span>${escapeHtml(blueprint.author)}</span></span>`
           : `by ${escapeHtml(blueprint.author)}`;
         card.innerHTML = `
           ${preview}
