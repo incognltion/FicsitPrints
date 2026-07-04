@@ -1412,6 +1412,7 @@
         { id: "cooling-system", name: "Cooling System", file: "Cooling_System.png" },
         { id: "supercomputer", name: "Supercomputer", file: "Supercomputer.png" },
         { id: "turbo-motor", name: "Turbo Motor", file: "Turbo_Motor.png" },
+        { id: "portable-miner", name: "Portable Miner", file: "Portable_Miner.png" },
       ];
 
       function getOwnerId() {
@@ -2008,6 +2009,102 @@
           .filter((material) => material.quantity > 0);
       }
 
+      const buildableCostCatalog = [
+        { tokens: ["Build_ConstructorMk1_C"], costs: { "reinforced-iron-plate": 2, cable: 4 } },
+        { tokens: ["Build_SmelterMk1_C"], costs: { "iron-rod": 5, wire: 8 } },
+        { tokens: ["Build_FoundryMk1_C"], costs: { "modular-frame": 10, rotor: 10, concrete: 20 } },
+        { tokens: ["Build_AssemblerMk1_C"], costs: { "reinforced-iron-plate": 8, rotor: 4, cable: 10 } },
+        { tokens: ["Build_ManufacturerMk1_C"], costs: { "heavy-modular-frame": 10, motor: 10, cable: 50, plastic: 50 } },
+        { tokens: ["Build_Packager_C"], costs: { "steel-beam": 20, rubber: 10, plastic: 10 } },
+        { tokens: ["Build_Refinery_C"], costs: { motor: 10, "encased-industrial-beam": 10, "steel-pipe": 30, "copper-sheet": 20 } },
+        { tokens: ["Build_Blender_C"], costs: { "radio-control-unit": 10, motor: 20, "aluminum-casing": 50, "heavy-modular-frame": 5 } },
+        { tokens: ["Build_MinerMk1_C"], costs: { concrete: 10, "iron-plate": 10 } },
+        { tokens: ["Build_MinerMk2_C"], costs: { "steel-beam": 10, "modular-frame": 5, "portable-miner": 2 } },
+        { tokens: ["Build_MinerMk3_C"], costs: { "supercomputer": 5, "fused-modular-frame": 10, "turbo-motor": 3, "portable-miner": 3 } },
+        { tokens: ["Build_WaterPump_C"], costs: { "copper-sheet": 20, "reinforced-iron-plate": 10, rotor: 10 } },
+        { tokens: ["Build_GeneratorBiomass_C"], costs: { "iron-plate": 15, "iron-rod": 15, wire: 25 } },
+        { tokens: ["Build_GeneratorCoal_C"], costs: { "reinforced-iron-plate": 20, rotor: 10, cable: 30 } },
+        { tokens: ["Build_GeneratorFuel_C"], costs: { motor: 15, "encased-industrial-beam": 15, rubber: 50, quickwire: 50 } },
+        { tokens: ["Build_PowerPoleMk1_C"], costs: { concrete: 1, wire: 3 } },
+        { tokens: ["Build_PowerPoleMk2_C"], costs: { concrete: 2, "iron-rod": 2, wire: 6 } },
+        { tokens: ["Build_PowerPoleMk3_C"], costs: { concrete: 2, "steel-pipe": 2, quickwire: 8 } },
+        { tokens: ["Build_PowerLine_C"], costs: { cable: 1 } },
+        { tokens: ["Build_ConveyorBeltMk1_C"], costs: { "iron-plate": 1 } },
+        { tokens: ["Build_ConveyorBeltMk2_C"], costs: { "reinforced-iron-plate": 1 } },
+        { tokens: ["Build_ConveyorBeltMk3_C"], costs: { "steel-beam": 1 } },
+        { tokens: ["Build_ConveyorBeltMk4_C"], costs: { "encased-industrial-beam": 1 } },
+        { tokens: ["Build_ConveyorBeltMk5_C"], costs: { "alclad-aluminum-sheet": 1 } },
+        { tokens: ["Build_ConveyorLiftMk1_C"], costs: { "iron-plate": 2 } },
+        { tokens: ["Build_ConveyorLiftMk2_C"], costs: { "reinforced-iron-plate": 2 } },
+        { tokens: ["Build_ConveyorLiftMk3_C"], costs: { "steel-beam": 2 } },
+        { tokens: ["Build_ConveyorLiftMk4_C"], costs: { "encased-industrial-beam": 2 } },
+        { tokens: ["Build_ConveyorLiftMk5_C"], costs: { "alclad-aluminum-sheet": 2 } },
+        { tokens: ["Build_ConveyorAttachmentMerger_C"], costs: { "iron-plate": 2, "iron-rod": 2 } },
+        { tokens: ["Build_ConveyorAttachmentSplitter_C"], costs: { "iron-plate": 2, "iron-rod": 2 } },
+        { tokens: ["Build_StorageContainerMk1_C"], costs: { "iron-plate": 10, "iron-rod": 10 } },
+        { tokens: ["Build_StorageContainerMk2_C"], costs: { "steel-beam": 10, "steel-pipe": 10 } },
+        { tokens: ["Build_Pipeline_C"], costs: { "copper-sheet": 1 } },
+        { tokens: ["Build_PipelineMK2_C"], costs: { "alclad-aluminum-sheet": 1 } },
+        { tokens: ["Build_PipelinePump_C"], costs: { "copper-sheet": 2, motor: 1 } },
+        { tokens: ["Build_PipelineJunction_C"], costs: { "copper-sheet": 2 } },
+        { tokens: ["Build_TrainStation_C"], costs: { "heavy-modular-frame": 4, computer: 8, concrete: 50, cable: 25 } },
+        { tokens: ["Build_RailroadTrack_C"], costs: { "steel-pipe": 1, "steel-beam": 1 } },
+        { tokens: ["Build_Foundation_8x1_C", "Build_Foundation_8x2_C", "Build_Foundation_8x4_C"], costs: { concrete: 2 } },
+        { tokens: ["Build_Wall_8x4_01_C", "Build_Wall_8x4_02_C", "Build_Wall_8x4_03_C"], costs: { concrete: 2 } },
+      ];
+
+      function countTokenOccurrences(text, token) {
+        let count = 0;
+        let index = text.indexOf(token);
+        while (index !== -1) {
+          count += 1;
+          index = text.indexOf(token, index + token.length);
+        }
+        return count;
+      }
+
+      function decodedBlueprintText(bytes) {
+        let output = "";
+        const chunkSize = 0x8000;
+        for (let index = 0; index < bytes.length; index += chunkSize) {
+          output += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+        }
+        return output;
+      }
+
+      async function detectBlueprintMaterials(file) {
+        if (!file || extensionFor(file.name) !== ".sbp") {
+          return { materials: [], buildableCount: 0 };
+        }
+
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const blueprintText = decodedBlueprintText(bytes);
+        const totals = new Map();
+        let buildableCount = 0;
+
+        for (const buildable of buildableCostCatalog) {
+          const count = buildable.tokens.reduce((sum, token) => sum + countTokenOccurrences(blueprintText, token), 0);
+          if (!count) {
+            continue;
+          }
+
+          buildableCount += count;
+          for (const [materialId, quantity] of Object.entries(buildable.costs)) {
+            totals.set(materialId, (totals.get(materialId) || 0) + quantity * count);
+          }
+        }
+
+        return {
+          buildableCount,
+          materials: Array.from(totals.entries())
+            .map(([id, quantity]) => {
+              const definition = materialCatalog.find((material) => material.id === id);
+              return definition ? { ...definition, quantity } : null;
+            })
+            .filter(Boolean),
+        };
+      }
+
       function renderDetailMaterials(materials = []) {
         const normalizedMaterials = normalizeMaterials(materials);
         if (!normalizedMaterials.length) {
@@ -2153,7 +2250,7 @@
         modal.classList.remove("is-open");
       }
 
-      function openPublishMenu(file) {
+      async function openPublishMenu(file) {
         selectedFile = file;
         editingBlueprintId = "";
         blueprintName.value = nameWithoutExtension(file.name);
@@ -2163,6 +2260,10 @@
           input.checked = false;
         });
         setMaterialInputs();
+        const detectedCosts = await detectBlueprintMaterials(file);
+        if (detectedCosts.materials.length) {
+          setMaterialInputs(detectedCosts.materials);
+        }
         selectedImageFile = null;
         selectedImageRawDataUrl = "";
         selectedImageDataUrl = "";
@@ -2172,7 +2273,9 @@
         closeModal(uploadModal);
         openModal(publishModal);
         setStatus("Blueprint format accepted. Ready to publish.");
-        setPublishStatus("");
+        setPublishStatus(detectedCosts.materials.length
+          ? `Auto-detected build costs from ${detectedCosts.buildableCount} blueprint objects. You can still adjust them before publishing.`
+          : "Could not auto-detect build costs from this file. You can add them manually.");
         publishButton.disabled = false;
         publishButton.textContent = "Publish";
         blueprintName.focus();
@@ -2280,7 +2383,7 @@
         renderCatalogue();
       }
 
-      function handleFile(file) {
+      async function handleFile(file) {
         if (!file) {
           return;
         }
@@ -2291,7 +2394,7 @@
           return;
         }
 
-        openPublishMenu(file);
+        await openPublishMenu(file);
       }
 
       loadBlueprints();
@@ -2543,8 +2646,8 @@
         showDetail(blueprints.find((blueprint) => blueprint.id === card.dataset.id));
       });
 
-      fileInput.addEventListener("change", () => {
-        handleFile(fileInput.files[0]);
+      fileInput.addEventListener("change", async () => {
+        await handleFile(fileInput.files[0]);
         fileInput.value = "";
       });
 
@@ -2641,10 +2744,10 @@
         dropZone.classList.remove("is-dragging");
       });
 
-      dropZone.addEventListener("drop", (event) => {
+      dropZone.addEventListener("drop", async (event) => {
         event.preventDefault();
         dropZone.classList.remove("is-dragging");
-        handleFile(event.dataTransfer.files[0]);
+        await handleFile(event.dataTransfer.files[0]);
       });
 
       publishButton.addEventListener("click", async () => {
