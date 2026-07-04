@@ -133,6 +133,29 @@
         margin-bottom: 22px;
       }
 
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+      }
+
+      .tab-button {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.07);
+        color: #c8d0dc;
+        cursor: pointer;
+        padding: 10px 14px;
+        font-weight: 700;
+      }
+
+      .tab-button.is-active {
+        border-color: rgba(255, 177, 93, 0.8);
+        background: rgba(255, 159, 46, 0.18);
+        color: #f7f9fc;
+      }
+
       .search {
         width: 100%;
         border: 1px solid rgba(255, 255, 255, 0.16);
@@ -151,6 +174,14 @@
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 16px;
+      }
+
+      .catalogue.is-hidden,
+      .toolbar.is-hidden,
+      .tabs.is-hidden,
+      .empty-state.is-hidden,
+      .hero.is-hidden {
+        display: none;
       }
 
       .blueprint-card {
@@ -173,7 +204,7 @@
       }
 
       .blueprint-preview {
-        height: 116px;
+        height: 130px;
         display: grid;
         place-items: center;
         background:
@@ -452,6 +483,110 @@
         object-fit: cover;
       }
 
+      .crop-workspace {
+        display: none;
+        gap: 12px;
+      }
+
+      .crop-workspace.is-visible {
+        display: grid;
+      }
+
+      .crop-frame {
+        aspect-ratio: 16 / 9;
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 6px;
+        background: #0f1218;
+        overflow: hidden;
+      }
+
+      .crop-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform-origin: center;
+      }
+
+      .crop-controls {
+        display: grid;
+        gap: 10px;
+      }
+
+      .crop-controls label {
+        display: grid;
+        gap: 6px;
+        color: #aeb8c6;
+        font-weight: 400;
+      }
+
+      .detail-view {
+        display: none;
+      }
+
+      .detail-view.is-visible {
+        display: block;
+      }
+
+      .detail-back {
+        margin-bottom: 18px;
+      }
+
+      .detail-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+        gap: 24px;
+        align-items: start;
+      }
+
+      .detail-image {
+        min-height: 360px;
+        border-radius: 8px;
+        background:
+          linear-gradient(90deg, rgba(255, 159, 46, 0.22) 1px, transparent 1px),
+          linear-gradient(rgba(255, 159, 46, 0.14) 1px, transparent 1px),
+          #151a22;
+        background-size: 22px 22px;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        color: #ffb15d;
+        font-size: 56px;
+        font-weight: 800;
+      }
+
+      .detail-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .detail-panel h2 {
+        margin: 0 0 12px;
+        font-size: 38px;
+        line-height: 1.05;
+      }
+
+      .detail-description {
+        color: #c8d0dc;
+        line-height: 1.55;
+        margin: 0 0 18px;
+      }
+
+      .detail-meta,
+      .detail-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 18px;
+      }
+
+      .detail-actions {
+        display: grid;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
       .dialog-actions {
         display: flex;
         justify-content: flex-end;
@@ -507,6 +642,10 @@
           grid-template-columns: 1fr;
         }
 
+        .detail-layout {
+          grid-template-columns: 1fr;
+        }
+
         .catalogue-meta {
           justify-content: flex-start;
         }
@@ -555,7 +694,7 @@
         <button id="open-upload" class="button" type="button">Upload Blueprint</button>
       </header>
 
-      <section class="hero" aria-labelledby="page-title">
+      <section id="hero" class="hero" aria-labelledby="page-title">
         <div>
           <p class="eyebrow">Blueprint catalogue</p>
           <h1 id="page-title">Find factory builds worth copying.</h1>
@@ -567,13 +706,36 @@
         </div>
       </section>
 
-      <section class="toolbar" aria-label="Catalogue tools">
+      <section id="toolbar" class="toolbar" aria-label="Catalogue tools">
         <input id="search" class="search" type="search" placeholder="Search blueprints">
         <span class="sort-label">Newest first</span>
       </section>
 
+      <nav id="tabs" class="tabs" aria-label="Blueprint views">
+        <button id="all-tab" class="tab-button is-active" type="button">All Blueprints</button>
+        <button id="mine-tab" class="tab-button" type="button">My Uploads</button>
+      </nav>
+
       <section id="catalogue" class="catalogue" aria-label="Uploaded blueprints"></section>
       <p id="empty-state" class="empty-state"></p>
+
+      <section id="detail-view" class="detail-view" aria-live="polite">
+        <button id="back-to-catalogue" class="button secondary detail-back" type="button">Back to catalogue</button>
+        <div class="detail-layout">
+          <div id="detail-image" class="detail-image">BP</div>
+          <div class="detail-panel">
+            <h2 id="detail-title"></h2>
+            <p id="detail-description" class="detail-description"></p>
+            <div id="detail-tags" class="detail-tags"></div>
+            <div id="detail-meta" class="detail-meta"></div>
+            <div class="detail-actions">
+              <button class="button" type="button" data-detail-download=".sbp">Download .sbp</button>
+              <button class="button secondary" type="button" data-detail-download=".sbpcfg">Download .sbpcfg</button>
+              <button id="edit-blueprint" class="button secondary" type="button">Update Blueprint</button>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <div id="upload-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="upload-title">
@@ -631,6 +793,16 @@
           <label for="image-input">Factory image</label>
           <input id="image-input" class="text-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
           <div id="image-preview" class="image-preview">Optional image preview</div>
+          <div id="crop-workspace" class="crop-workspace">
+            <div class="crop-frame">
+              <img id="crop-image" alt="">
+            </div>
+            <div class="crop-controls">
+              <label>Zoom <input id="crop-zoom" type="range" min="1" max="2.5" step="0.05" value="1"></label>
+              <label>Horizontal crop <input id="crop-x" type="range" min="0" max="100" step="1" value="50"></label>
+              <label>Vertical crop <input id="crop-y" type="range" min="0" max="100" step="1" value="50"></label>
+            </div>
+          </div>
         </div>
 
         <p id="publish-status" class="status" role="status" aria-live="polite"></p>
@@ -671,11 +843,25 @@
       const legacyStorageKey = "ficsitprints.blueprints";
       const databaseName = "ficsitprints";
       const storeName = "blueprints";
+      const ownerStorageKey = "ficsitprints.owner";
       const apiBase = "/api/blueprints";
 
+      const hero = document.querySelector("#hero");
+      const toolbar = document.querySelector("#toolbar");
+      const tabs = document.querySelector("#tabs");
+      const allTab = document.querySelector("#all-tab");
+      const mineTab = document.querySelector("#mine-tab");
       const catalogue = document.querySelector("#catalogue");
       const blueprintCount = document.querySelector("#blueprint-count");
       const emptyState = document.querySelector("#empty-state");
+      const detailView = document.querySelector("#detail-view");
+      const backToCatalogue = document.querySelector("#back-to-catalogue");
+      const detailImage = document.querySelector("#detail-image");
+      const detailTitle = document.querySelector("#detail-title");
+      const detailDescription = document.querySelector("#detail-description");
+      const detailTags = document.querySelector("#detail-tags");
+      const detailMeta = document.querySelector("#detail-meta");
+      const editBlueprint = document.querySelector("#edit-blueprint");
       const search = document.querySelector("#search");
       const openUpload = document.querySelector("#open-upload");
       const uploadModal = document.querySelector("#upload-modal");
@@ -700,12 +886,21 @@
       const tagGrid = document.querySelector("#tag-grid");
       const imageInput = document.querySelector("#image-input");
       const imagePreview = document.querySelector("#image-preview");
+      const cropWorkspace = document.querySelector("#crop-workspace");
+      const cropImage = document.querySelector("#crop-image");
+      const cropZoom = document.querySelector("#crop-zoom");
+      const cropX = document.querySelector("#crop-x");
+      const cropY = document.querySelector("#crop-y");
       let blueprints = [];
       let selectedFile = null;
       let selectedImageFile = null;
+      let selectedImageRawDataUrl = "";
       let selectedImageDataUrl = "";
       let selectedBlueprint = null;
+      let editingBlueprintId = "";
+      let activeTab = "all";
       let sharedStorageEnabled = false;
+      const ownerId = getOwnerId();
       const availableTags = [
         "Power",
         "Factory",
@@ -725,12 +920,24 @@
         "Pipes",
       ];
 
+      function getOwnerId() {
+        const existingOwner = localStorage.getItem(ownerStorageKey);
+        if (existingOwner) {
+          return existingOwner;
+        }
+
+        const nextOwner = crypto.randomUUID();
+        localStorage.setItem(ownerStorageKey, nextOwner);
+        return nextOwner;
+      }
+
       function normalizeBlueprint(blueprint) {
         return {
           id: blueprint.id || crypto.randomUUID(),
           name: blueprint.name || "Untitled blueprint",
           description: blueprint.description || "Local test upload.",
           author: blueprint.author || "You",
+          ownerId: blueprint.ownerId || "",
           downloads: Number(blueprint.downloads || 0),
           category: blueprint.category || "New",
           tags: Array.isArray(blueprint.tags) ? blueprint.tags : [],
@@ -819,6 +1026,75 @@
           reader.addEventListener("error", () => reject(reader.error));
           reader.readAsDataURL(file);
         });
+      }
+
+      function dataUrlToBlob(dataUrl) {
+        const [header, data] = dataUrl.split(",");
+        const mimeMatch = header.match(/data:([^;]+);base64/);
+        const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+        const binary = atob(data);
+        const bytes = new Uint8Array(binary.length);
+
+        for (let index = 0; index < binary.length; index += 1) {
+          bytes[index] = binary.charCodeAt(index);
+        }
+
+        return new Blob([bytes], { type: mimeType });
+      }
+
+      function loadImage(dataUrl) {
+        return new Promise((resolve, reject) => {
+          const image = new Image();
+          image.addEventListener("load", () => resolve(image));
+          image.addEventListener("error", reject);
+          image.src = dataUrl;
+        });
+      }
+
+      async function cropImageDataUrl() {
+        if (!selectedImageRawDataUrl) {
+          return "";
+        }
+
+        const sourceImage = await loadImage(selectedImageRawDataUrl);
+        const zoom = Number(cropZoom.value);
+        const outputWidth = 1280;
+        const outputHeight = 720;
+        const sourceAspect = sourceImage.width / sourceImage.height;
+        const outputAspect = outputWidth / outputHeight;
+        let cropWidth = sourceImage.width;
+        let cropHeight = sourceImage.height;
+
+        if (sourceAspect > outputAspect) {
+          cropWidth = sourceImage.height * outputAspect;
+        } else {
+          cropHeight = sourceImage.width / outputAspect;
+        }
+
+        cropWidth /= zoom;
+        cropHeight /= zoom;
+
+        const maxX = sourceImage.width - cropWidth;
+        const maxY = sourceImage.height - cropHeight;
+        const sourceX = maxX * (Number(cropX.value) / 100);
+        const sourceY = maxY * (Number(cropY.value) / 100);
+        const canvas = document.createElement("canvas");
+        canvas.width = outputWidth;
+        canvas.height = outputHeight;
+        const context = canvas.getContext("2d");
+        context.drawImage(sourceImage, sourceX, sourceY, cropWidth, cropHeight, 0, 0, outputWidth, outputHeight);
+        return canvas.toDataURL("image/jpeg", 0.86);
+      }
+
+      async function updateCropPreview() {
+        if (!selectedImageRawDataUrl) {
+          return;
+        }
+
+        cropImage.style.transform = `scale(${cropZoom.value})`;
+        cropImage.style.objectPosition = `${cropX.value}% ${cropY.value}%`;
+        selectedImageDataUrl = await cropImageDataUrl();
+        imagePreview.innerHTML = `<img src="${selectedImageDataUrl}" alt="">`;
       }
 
       async function saveLegacyBlueprintRecord(blueprint) {
@@ -950,18 +1226,60 @@
       function renderCatalogue() {
         const query = search.value.trim().toLowerCase();
         const filteredBlueprints = blueprints.filter((blueprint) => {
-          return [blueprint.name, blueprint.description, blueprint.author, blueprint.category]
+          const matchesTab = activeTab === "all" || blueprint.ownerId === ownerId || blueprint.author === "You";
+          const searchable = [blueprint.name, blueprint.description, blueprint.author, blueprint.category, ...blueprint.tags]
             .join(" ")
             .toLowerCase()
             .includes(query);
+          return matchesTab && searchable;
         });
 
         catalogue.replaceChildren(...filteredBlueprints.map(cardFor));
         blueprintCount.textContent = `${blueprints.length} ${blueprints.length === 1 ? "blueprint" : "blueprints"}`;
         emptyState.classList.toggle("is-visible", filteredBlueprints.length === 0);
-        emptyState.innerHTML = blueprints.length === 0
+        emptyState.innerHTML = activeTab === "mine" && filteredBlueprints.length === 0
+          ? "<strong>No uploads from this browser yet.</strong>Upload a blueprint, then come back here to update it."
+          : blueprints.length === 0
           ? `<strong>No blueprints uploaded yet.</strong>${sharedStorageEnabled ? "Use the Upload Blueprint button to add the first shared blueprint." : "Use the Upload Blueprint button to add a local test blueprint."}`
           : "No blueprints match that search.";
+      }
+
+      function showCatalogue() {
+        hero.classList.remove("is-hidden");
+        toolbar.classList.remove("is-hidden");
+        tabs.classList.remove("is-hidden");
+        catalogue.classList.remove("is-hidden");
+        emptyState.classList.remove("is-hidden");
+        detailView.classList.remove("is-visible");
+        selectedBlueprint = null;
+        renderCatalogue();
+      }
+
+      function showDetail(blueprint) {
+        if (!blueprint) {
+          return;
+        }
+
+        selectedBlueprint = blueprint;
+        hero.classList.add("is-hidden");
+        toolbar.classList.add("is-hidden");
+        tabs.classList.add("is-hidden");
+        catalogue.classList.add("is-hidden");
+        emptyState.classList.add("is-hidden");
+        detailView.classList.add("is-visible");
+        detailTitle.textContent = blueprint.name;
+        detailDescription.textContent = blueprint.description;
+        const imageSource = blueprint.imageUrl || blueprint.imageDataUrl;
+        detailImage.innerHTML = imageSource ? `<img src="${escapeHtml(imageSource)}" alt="">` : "BP";
+        detailTags.innerHTML = blueprint.tags.length
+          ? blueprint.tags.map((tag) => `<span class="stat">${escapeHtml(tag)}</span>`).join("")
+          : `<span class="stat">${escapeHtml(blueprint.category)}</span>`;
+        detailMeta.innerHTML = `
+          <span class="stat">Uploaded by ${escapeHtml(blueprint.author)}</span>
+          <span class="stat">${new Date(blueprint.uploadedAt).toLocaleDateString()}</span>
+          <span class="stat">${escapeHtml(blueprint.downloads)} downloads</span>
+        `;
+        editBlueprint.style.display = blueprint.ownerId === ownerId || blueprint.author === "You" ? "block" : "none";
       }
 
       function openModal(modal) {
@@ -974,6 +1292,7 @@
 
       function openPublishMenu(file) {
         selectedFile = file;
+        editingBlueprintId = "";
         blueprintName.value = nameWithoutExtension(file.name);
         blueprintDescription.value = "";
         fileSummary.textContent = `${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
@@ -981,16 +1300,42 @@
           input.checked = false;
         });
         selectedImageFile = null;
+        selectedImageRawDataUrl = "";
         selectedImageDataUrl = "";
         imageInput.value = "";
         imagePreview.textContent = "Optional image preview";
+        cropWorkspace.classList.remove("is-visible");
         closeModal(uploadModal);
         openModal(publishModal);
         setStatus("Blueprint format accepted. Ready to publish.");
         setPublishStatus("");
         publishButton.disabled = false;
+        publishButton.textContent = "Publish";
         blueprintName.focus();
         blueprintName.select();
+      }
+
+      function openEditMenu(blueprint) {
+        editingBlueprintId = blueprint.id;
+        selectedFile = blueprint.fileBlob || null;
+        selectedImageFile = blueprint.imageBlob || null;
+        selectedImageDataUrl = blueprint.imageDataUrl || blueprint.imageUrl || "";
+        selectedImageRawDataUrl = selectedImageDataUrl;
+        blueprintName.value = blueprint.name;
+        blueprintDescription.value = blueprint.description;
+        fileSummary.textContent = blueprint.fileName ? `Updating ${blueprint.fileName}` : "Updating blueprint";
+        tagGrid.querySelectorAll("input").forEach((input) => {
+          input.checked = blueprint.tags.includes(input.value);
+        });
+        imageInput.value = "";
+        imagePreview.innerHTML = selectedImageDataUrl ? `<img src="${selectedImageDataUrl}" alt="">` : "Optional image preview";
+        cropWorkspace.classList.toggle("is-visible", Boolean(selectedImageDataUrl));
+        if (selectedImageDataUrl) {
+          cropImage.src = selectedImageDataUrl;
+        }
+        setPublishStatus("");
+        publishButton.textContent = "Update";
+        openModal(publishModal);
       }
 
       function openDownloadMenu(blueprint) {
@@ -1094,6 +1439,27 @@
       }
 
       search.addEventListener("input", renderCatalogue);
+      allTab.addEventListener("click", () => {
+        activeTab = "all";
+        allTab.classList.add("is-active");
+        mineTab.classList.remove("is-active");
+        renderCatalogue();
+      });
+      mineTab.addEventListener("click", () => {
+        activeTab = "mine";
+        mineTab.classList.add("is-active");
+        allTab.classList.remove("is-active");
+        renderCatalogue();
+      });
+      backToCatalogue.addEventListener("click", showCatalogue);
+      editBlueprint.addEventListener("click", () => {
+        if (selectedBlueprint) {
+          openEditMenu(selectedBlueprint);
+        }
+      });
+      document.querySelectorAll("[data-detail-download]").forEach((button) => {
+        button.addEventListener("click", () => downloadBlueprint(button.dataset.detailDownload));
+      });
       openUpload.addEventListener("click", () => {
         setStatus("");
         openModal(uploadModal);
@@ -1110,7 +1476,7 @@
           return;
         }
 
-        openDownloadMenu(blueprints.find((blueprint) => blueprint.id === card.dataset.id));
+        showDetail(blueprints.find((blueprint) => blueprint.id === card.dataset.id));
       });
 
       fileInput.addEventListener("change", () => {
@@ -1120,16 +1486,28 @@
 
       imageInput.addEventListener("change", async () => {
         selectedImageFile = imageInput.files[0] || null;
+        selectedImageRawDataUrl = "";
         selectedImageDataUrl = "";
 
         if (!selectedImageFile) {
           imagePreview.textContent = "Optional image preview";
+          cropWorkspace.classList.remove("is-visible");
           return;
         }
 
-        selectedImageDataUrl = await fileToDataUrl(selectedImageFile);
+        selectedImageRawDataUrl = await fileToDataUrl(selectedImageFile);
+        cropImage.src = selectedImageRawDataUrl;
+        cropZoom.value = "1";
+        cropX.value = "50";
+        cropY.value = "50";
+        cropWorkspace.classList.add("is-visible");
+        selectedImageDataUrl = await cropImageDataUrl();
         imagePreview.innerHTML = `<img src="${selectedImageDataUrl}" alt="">`;
       });
+
+      for (const cropControl of [cropZoom, cropX, cropY]) {
+        cropControl.addEventListener("input", updateCropPreview);
+      }
 
       dropZone.addEventListener("dragover", (event) => {
         event.preventDefault();
@@ -1150,6 +1528,10 @@
         const name = blueprintName.value.trim();
         const description = blueprintDescription.value.trim();
         const tags = selectedTags();
+        const existingBlueprint = editingBlueprintId
+          ? blueprints.find((blueprint) => blueprint.id === editingBlueprintId)
+          : null;
+        const croppedImageBlob = selectedImageDataUrl ? dataUrlToBlob(selectedImageDataUrl) : null;
         if (!name) {
           setPublishStatus("Add a blueprint name before publishing.", true);
           blueprintName.focus();
@@ -1157,37 +1539,44 @@
         }
 
         const newBlueprint = {
-          id: crypto.randomUUID(),
+          ...(existingBlueprint || {}),
+          id: existingBlueprint ? existingBlueprint.id : crypto.randomUUID(),
           name,
           description: description || (selectedFile ? `Local test upload from ${selectedFile.name}.` : "Local test upload."),
-          author: "You",
-          downloads: 0,
+          author: existingBlueprint?.author || "You",
+          ownerId,
+          downloads: Number(existingBlueprint?.downloads || 0),
           category: tags[0] || "New",
           tags,
-          imageUrl: "",
+          imageUrl: sharedStorageEnabled ? "" : selectedImageDataUrl,
           imageDataUrl: selectedImageDataUrl,
-          imageBlob: selectedImageFile,
-          fileName: selectedFile ? selectedFile.name : "",
-          fileBlob: selectedFile,
-          fileDataUrl: "",
-          uploadedAt: new Date().toISOString(),
+          imageBlob: croppedImageBlob || existingBlueprint?.imageBlob || null,
+          fileName: selectedFile ? selectedFile.name : existingBlueprint?.fileName || "",
+          fileBlob: selectedFile || existingBlueprint?.fileBlob || null,
+          fileDataUrl: existingBlueprint?.fileDataUrl || "",
+          uploadedAt: existingBlueprint?.uploadedAt || new Date().toISOString(),
         };
 
         try {
           publishButton.disabled = true;
-          setPublishStatus(sharedStorageEnabled ? "Publishing blueprint for everyone..." : "Saving blueprint locally...");
+          setPublishStatus(sharedStorageEnabled
+            ? editingBlueprintId ? "Updating shared blueprint..." : "Publishing blueprint for everyone..."
+            : editingBlueprintId ? "Updating blueprint locally..." : "Saving blueprint locally...");
 
           if (sharedStorageEnabled) {
             const formData = new FormData();
             formData.append("name", name);
             formData.append("description", description);
             formData.append("tags", JSON.stringify(tags));
-            formData.append("file", selectedFile);
-            if (selectedImageFile) {
-              formData.append("image", selectedImageFile);
+            formData.append("ownerId", ownerId);
+            if (selectedFile) {
+              formData.append("file", selectedFile);
             }
-            const response = await fetch(apiBase, {
-              method: "POST",
+            if (croppedImageBlob) {
+              formData.append("image", croppedImageBlob, "factory-preview.jpg");
+            }
+            const response = await fetch(editingBlueprintId ? `${apiBase}/${encodeURIComponent(editingBlueprintId)}` : apiBase, {
+              method: editingBlueprintId ? "PUT" : "POST",
               body: formData,
             });
 
@@ -1196,16 +1585,15 @@
             }
 
             const data = await response.json();
-            blueprints = [
-              normalizeBlueprint(data.blueprint),
-              ...blueprints,
-            ];
+            const savedBlueprint = normalizeBlueprint(data.blueprint);
+            blueprints = editingBlueprintId
+              ? blueprints.map((blueprint) => blueprint.id === savedBlueprint.id ? savedBlueprint : blueprint)
+              : [savedBlueprint, ...blueprints];
           } else {
             await saveBlueprintRecord(newBlueprint);
-            blueprints = [
-              newBlueprint,
-              ...blueprints,
-            ];
+            blueprints = editingBlueprintId
+              ? blueprints.map((blueprint) => blueprint.id === newBlueprint.id ? newBlueprint : blueprint)
+              : [newBlueprint, ...blueprints];
           }
         } catch {
           setPublishStatus(sharedStorageEnabled
@@ -1217,9 +1605,14 @@
 
         closeModal(publishModal);
         publishButton.disabled = false;
+        publishButton.textContent = "Publish";
+        editingBlueprintId = "";
         setPublishStatus("");
         search.value = "";
         renderCatalogue();
+        if (selectedBlueprint) {
+          showDetail(blueprints.find((blueprint) => blueprint.id === selectedBlueprint.id));
+        }
       });
 
       document.querySelectorAll(".download-option").forEach((button) => {

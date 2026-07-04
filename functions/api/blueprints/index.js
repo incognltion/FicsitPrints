@@ -21,6 +21,7 @@ function rowToBlueprint(row) {
     name: row.name,
     description: row.description,
     author: row.author,
+    ownerId: row.owner_id,
     downloads: row.downloads,
     category: row.category,
     tags: row.tags ? JSON.parse(row.tags) : [],
@@ -32,7 +33,7 @@ function rowToBlueprint(row) {
 
 export async function onRequestGet({ env }) {
   const { results } = await env.DB.prepare(
-    `select id, name, description, author, downloads, category, tags, image_key, file_name, uploaded_at
+    `select id, name, description, author, owner_id, downloads, category, tags, image_key, file_name, uploaded_at
      from blueprints
      order by uploaded_at desc`
   ).all();
@@ -45,6 +46,7 @@ export async function onRequestPost({ request, env }) {
   const name = String(formData.get("name") || "").trim();
   const description = String(formData.get("description") || "").trim();
   const tags = JSON.parse(String(formData.get("tags") || "[]")).filter((tag) => typeof tag === "string");
+  const ownerId = String(formData.get("ownerId") || "").trim();
   const file = formData.get("file");
   const image = formData.get("image");
 
@@ -85,6 +87,7 @@ export async function onRequestPost({ request, env }) {
     name,
     description: description || `Shared upload from ${file.name}.`,
     author: "Community",
+    ownerId,
     downloads: 0,
     category: tags[0] || "New",
     tags,
@@ -95,14 +98,15 @@ export async function onRequestPost({ request, env }) {
 
   await env.DB.prepare(
     `insert into blueprints
-      (id, name, description, author, downloads, category, tags, image_key, file_name, r2_key, uploaded_at)
-     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (id, name, description, author, owner_id, downloads, category, tags, image_key, file_name, r2_key, uploaded_at)
+     values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       blueprint.id,
       blueprint.name,
       blueprint.description,
       blueprint.author,
+      blueprint.ownerId,
       blueprint.downloads,
       blueprint.category,
       JSON.stringify(blueprint.tags),
