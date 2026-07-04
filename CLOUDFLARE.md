@@ -26,6 +26,8 @@ Copy the D1 database id into `wrangler.toml`, then run:
 npx wrangler d1 migrations apply ficsitprints
 ```
 
+The migration creates columns for descriptions, tags, preview images, blueprint file names, and R2 object keys.
+
 ## Manual Deploy
 
 After installing dependencies:

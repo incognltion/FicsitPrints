@@ -186,6 +186,17 @@
         font-weight: 800;
       }
 
+      .blueprint-preview.has-image {
+        background: #151a22;
+        padding: 0;
+      }
+
+      .blueprint-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
       .blueprint-body {
         padding: 16px;
       }
@@ -379,14 +390,66 @@
         padding: 12px 14px;
       }
 
-      .tag-placeholder {
-        min-height: 48px;
+      textarea.text-input {
+        min-height: 96px;
+        resize: vertical;
+      }
+
+      .tag-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tag-option {
+        position: relative;
+      }
+
+      .tag-option input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .tag-option span {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 999px;
+        padding: 8px 12px;
+        color: #c8d0dc;
+        background: rgba(255, 255, 255, 0.07);
+        cursor: pointer;
+      }
+
+      .tag-option input:checked + span {
+        border-color: rgba(255, 177, 93, 0.9);
+        background: rgba(255, 159, 46, 0.18);
+        color: #f7f9fc;
+      }
+
+      .image-upload {
+        display: grid;
+        gap: 10px;
+      }
+
+      .image-preview {
+        min-height: 120px;
         border: 1px dashed rgba(255, 255, 255, 0.18);
         border-radius: 6px;
         display: flex;
         align-items: center;
+        justify-content: center;
         padding: 0 14px;
         color: #858f9e;
+        overflow: hidden;
+      }
+
+      .image-preview img {
+        width: 100%;
+        max-height: 220px;
+        object-fit: cover;
       }
 
       .dialog-actions {
@@ -555,8 +618,19 @@
         </div>
 
         <div class="field">
+          <label for="blueprint-description">Description</label>
+          <textarea id="blueprint-description" class="text-input" placeholder="What does this blueprint build? What inputs, outputs, or game phase is it useful for?"></textarea>
+        </div>
+
+        <div class="field">
           <label>Tags</label>
-          <div class="tag-placeholder">Tags will be added later</div>
+          <div id="tag-grid" class="tag-grid" aria-label="Blueprint tags"></div>
+        </div>
+
+        <div class="field image-upload">
+          <label for="image-input">Factory image</label>
+          <input id="image-input" class="text-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+          <div id="image-preview" class="image-preview">Optional image preview</div>
         </div>
 
         <p id="publish-status" class="status" role="status" aria-live="polite"></p>
@@ -620,12 +694,36 @@
       const cancelPublish = document.querySelector("#cancel-publish");
       const publishButton = document.querySelector("#publish-button");
       const blueprintName = document.querySelector("#blueprint-name");
+      const blueprintDescription = document.querySelector("#blueprint-description");
       const fileSummary = document.querySelector("#file-summary");
       const publishStatus = document.querySelector("#publish-status");
+      const tagGrid = document.querySelector("#tag-grid");
+      const imageInput = document.querySelector("#image-input");
+      const imagePreview = document.querySelector("#image-preview");
       let blueprints = [];
       let selectedFile = null;
+      let selectedImageFile = null;
+      let selectedImageDataUrl = "";
       let selectedBlueprint = null;
       let sharedStorageEnabled = false;
+      const availableTags = [
+        "Power",
+        "Factory",
+        "Smelters",
+        "Constructors",
+        "Assemblers",
+        "Storage",
+        "Logistics",
+        "Phase 1",
+        "Phase 2",
+        "Phase 3",
+        "Phase 4",
+        "Linkable",
+        "Compact",
+        "Starter",
+        "Trains",
+        "Pipes",
+      ];
 
       function normalizeBlueprint(blueprint) {
         return {
@@ -635,6 +733,10 @@
           author: blueprint.author || "You",
           downloads: Number(blueprint.downloads || 0),
           category: blueprint.category || "New",
+          tags: Array.isArray(blueprint.tags) ? blueprint.tags : [],
+          imageUrl: blueprint.imageUrl || "",
+          imageDataUrl: blueprint.imageDataUrl || "",
+          imageBlob: blueprint.imageBlob || null,
           fileName: blueprint.fileName || "",
           fileBlob: blueprint.fileBlob || null,
           fileDataUrl: blueprint.fileDataUrl || "",
@@ -725,6 +827,8 @@
           ...blueprint,
           fileBlob: null,
           fileDataUrl: blueprint.fileDataUrl || await fileToDataUrl(blueprint.fileBlob),
+          imageBlob: null,
+          imageDataUrl: blueprint.imageDataUrl || await fileToDataUrl(blueprint.imageBlob),
         };
         const nextBlueprints = [
           serializableBlueprint,
@@ -822,13 +926,19 @@
         card.type = "button";
         card.className = "blueprint-card";
         card.dataset.id = blueprint.id;
+        const preview = blueprint.imageUrl || blueprint.imageDataUrl
+          ? `<div class="blueprint-preview has-image" aria-hidden="true"><img src="${escapeHtml(blueprint.imageUrl || blueprint.imageDataUrl)}" alt=""></div>`
+          : `<div class="blueprint-preview" aria-hidden="true">BP</div>`;
+        const tags = blueprint.tags.length
+          ? blueprint.tags.slice(0, 4).map((tag) => `<span class="stat">${escapeHtml(tag)}</span>`).join("")
+          : `<span class="stat">${escapeHtml(blueprint.category)}</span>`;
         card.innerHTML = `
-          <div class="blueprint-preview" aria-hidden="true">BP</div>
+          ${preview}
           <div class="blueprint-body">
             <h2>${escapeHtml(blueprint.name)}</h2>
             <p>${escapeHtml(blueprint.description)}</p>
             <div class="blueprint-stats">
-              <span class="stat">${escapeHtml(blueprint.category)}</span>
+              ${tags}
               <span class="stat">by ${escapeHtml(blueprint.author)}</span>
               <span class="stat">${escapeHtml(blueprint.downloads)} downloads</span>
             </div>
@@ -865,7 +975,15 @@
       function openPublishMenu(file) {
         selectedFile = file;
         blueprintName.value = nameWithoutExtension(file.name);
+        blueprintDescription.value = "";
         fileSummary.textContent = `${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
+        tagGrid.querySelectorAll("input").forEach((input) => {
+          input.checked = false;
+        });
+        selectedImageFile = null;
+        selectedImageDataUrl = "";
+        imageInput.value = "";
+        imagePreview.textContent = "Optional image preview";
         closeModal(uploadModal);
         openModal(publishModal);
         setStatus("Blueprint format accepted. Ready to publish.");
@@ -964,6 +1082,17 @@
 
       loadBlueprints();
 
+      tagGrid.innerHTML = availableTags.map((tag) => `
+        <label class="tag-option">
+          <input type="checkbox" value="${escapeHtml(tag)}">
+          <span>${escapeHtml(tag)}</span>
+        </label>
+      `).join("");
+
+      function selectedTags() {
+        return Array.from(tagGrid.querySelectorAll("input:checked")).map((input) => input.value);
+      }
+
       search.addEventListener("input", renderCatalogue);
       openUpload.addEventListener("click", () => {
         setStatus("");
@@ -989,6 +1118,19 @@
         fileInput.value = "";
       });
 
+      imageInput.addEventListener("change", async () => {
+        selectedImageFile = imageInput.files[0] || null;
+        selectedImageDataUrl = "";
+
+        if (!selectedImageFile) {
+          imagePreview.textContent = "Optional image preview";
+          return;
+        }
+
+        selectedImageDataUrl = await fileToDataUrl(selectedImageFile);
+        imagePreview.innerHTML = `<img src="${selectedImageDataUrl}" alt="">`;
+      });
+
       dropZone.addEventListener("dragover", (event) => {
         event.preventDefault();
         dropZone.classList.add("is-dragging");
@@ -1006,6 +1148,8 @@
 
       publishButton.addEventListener("click", async () => {
         const name = blueprintName.value.trim();
+        const description = blueprintDescription.value.trim();
+        const tags = selectedTags();
         if (!name) {
           setPublishStatus("Add a blueprint name before publishing.", true);
           blueprintName.focus();
@@ -1015,10 +1159,14 @@
         const newBlueprint = {
           id: crypto.randomUUID(),
           name,
-          description: selectedFile ? `Local test upload from ${selectedFile.name}.` : "Local test upload.",
+          description: description || (selectedFile ? `Local test upload from ${selectedFile.name}.` : "Local test upload."),
           author: "You",
           downloads: 0,
-          category: "New",
+          category: tags[0] || "New",
+          tags,
+          imageUrl: "",
+          imageDataUrl: selectedImageDataUrl,
+          imageBlob: selectedImageFile,
           fileName: selectedFile ? selectedFile.name : "",
           fileBlob: selectedFile,
           fileDataUrl: "",
@@ -1032,7 +1180,12 @@
           if (sharedStorageEnabled) {
             const formData = new FormData();
             formData.append("name", name);
+            formData.append("description", description);
+            formData.append("tags", JSON.stringify(tags));
             formData.append("file", selectedFile);
+            if (selectedImageFile) {
+              formData.append("image", selectedImageFile);
+            }
             const response = await fetch(apiBase, {
               method: "POST",
               body: formData,
