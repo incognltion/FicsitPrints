@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node server.js",
-    "deploy:cloudflare": "wrangler pages deploy . --project-name ficsitprints"
+    "deploy:cloudflare": "wrangler deploy"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

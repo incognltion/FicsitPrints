@@ -1,15 +1,13 @@
 # Cloudflare Deployment Notes
 
-FicsitPrints is currently a static prototype, so the easiest Cloudflare path is Cloudflare Pages.
+FicsitPrints deploys as a Cloudflare Worker with static assets, a D1 database, and an R2 bucket.
 
-## Cloudflare Pages Setup
+## Cloudflare Worker Setup
 
-- Framework preset: None
-- Build command: leave blank
-- Build output directory: `.`
-- Production branch: `main`
-- Root directory: repository root
-- Functions directory: `functions`
+- Worker entry: `worker.js`
+- Static assets directory: `.`
+- D1 binding: `DB`
+- R2 binding: `BLUEPRINT_FILES`
 
 ## Storage Setup
 
@@ -41,5 +39,5 @@ npm run deploy:cloudflare
 
 - Blueprint metadata is stored in Cloudflare D1.
 - `.sbp` and `.sbpcfg` files are stored in Cloudflare R2.
-- Upload and download routes live in `functions/api/blueprints`.
+- Upload and download routes live in `worker.js`.
 - Add authentication before public uploads.
