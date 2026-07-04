@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FicsitPrints</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #101217;
+        color: #f7f9fc;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(135deg, rgba(255, 154, 46, 0.16), transparent 34%),
+          linear-gradient(315deg, rgba(50, 174, 225, 0.12), transparent 40%),
+          #101217;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 34px 0 56px;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 44px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #f7f9fc;
+        font-weight: 800;
+      }
+
+      .brand-mark {
+        width: 38px;
+        height: 38px;
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        background: #ff9f2e;
+        color: #17110a;
+      }
+
+      .button {
+        border: 0;
+        border-radius: 6px;
+        padding: 12px 18px;
+        background: #ff9f2e;
+        color: #17110a;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .button.secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: #f7f9fc;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 28px;
+        align-items: end;
+        margin-bottom: 28px;
+      }
+
+      .eyebrow {
+        margin: 0 0 10px;
+        color: #ffb15d;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        max-width: 780px;
+        font-size: clamp(38px, 6vw, 70px);
+        line-height: 0.98;
+      }
+
+      .intro {
+        max-width: 680px;
+        margin: 0;
+        color: #c8d0dc;
+        font-size: 19px;
+        line-height: 1.5;
+      }
+
+      .catalogue-meta {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .pill {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        padding: 8px 12px;
+        color: #c8d0dc;
+        background: rgba(18, 22, 30, 0.72);
+        font-size: 14px;
+      }
+
+      .toolbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        margin-bottom: 22px;
+      }
+
+      .search {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 6px;
+        background: rgba(13, 16, 22, 0.85);
+        color: #f7f9fc;
+        padding: 13px 14px;
+      }
+
+      .sort-label {
+        color: #aeb8c6;
+        font-size: 14px;
+      }
+
+      .catalogue {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .blueprint-card {
+        min-height: 260px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        background: rgba(20, 24, 31, 0.82);
+        overflow: hidden;
+        color: inherit;
+        cursor: pointer;
+        text-align: left;
+        transition: border-color 160ms ease, transform 160ms ease;
+      }
+
+      .blueprint-card:hover,
+      .blueprint-card:focus-visible {
+        border-color: rgba(255, 177, 93, 0.8);
+        transform: translateY(-2px);
+        outline: none;
+      }
+
+      .blueprint-preview {
+        height: 116px;
+        display: grid;
+        place-items: center;
+        background:
+          linear-gradient(90deg, rgba(255, 159, 46, 0.22) 1px, transparent 1px),
+          linear-gradient(rgba(255, 159, 46, 0.14) 1px, transparent 1px),
+          #151a22;
+        background-size: 22px 22px;
+        color: #ffb15d;
+        font-size: 32px;
+        font-weight: 800;
+      }
+
+      .blueprint-body {
+        padding: 16px;
+      }
+
+      .blueprint-body h2 {
+        margin: 0 0 8px;
+        font-size: 21px;
+      }
+
+      .blueprint-body p {
+        margin: 0 0 14px;
+        color: #aeb8c6;
+        line-height: 1.45;
+      }
+
+      .blueprint-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .stat {
+        border-radius: 5px;
+        padding: 6px 8px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #cfd6e0;
+        font-size: 13px;
+      }
+
+      .empty-state {
+        display: none;
+        border: 1px dashed rgba(255, 255, 255, 0.16);
+        border-radius: 8px;
+        padding: 34px 22px;
+        color: #aeb8c6;
+        text-align: center;
+      }
+
+      .empty-state strong {
+        display: block;
+        margin-bottom: 8px;
+        color: #f7f9fc;
+        font-size: 20px;
+      }
+
+      .empty-state.is-visible {
+        display: block;
+      }
+
+      .modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        place-items: center;
+        padding: 24px;
+        background: rgba(5, 7, 10, 0.72);
+        z-index: 10;
+      }
+
+      .modal.is-open {
+        display: grid;
+      }
+
+      .dialog {
+        width: min(620px, 100%);
+        max-height: calc(100vh - 48px);
+        overflow: auto;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 8px;
+        background: #171b23;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+        padding: 24px;
+      }
+
+      .dialog-header {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 22px;
+      }
+
+      .dialog h2 {
+        margin: 0 0 6px;
+        font-size: 28px;
+      }
+
+      .dialog-copy,
+      .file-summary {
+        margin: 0;
+        color: #aeb8c6;
+        line-height: 1.45;
+        word-break: break-word;
+      }
+
+      .close {
+        width: 38px;
+        height: 38px;
+        border: 0;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #f7f9fc;
+        cursor: pointer;
+      }
+
+      .drop-zone {
+        min-height: 260px;
+        border: 2px dashed rgba(255, 177, 93, 0.7);
+        border-radius: 8px;
+        background: rgba(20, 24, 31, 0.78);
+        display: grid;
+        place-items: center;
+        padding: 28px;
+        text-align: center;
+        transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+      }
+
+      .drop-zone.is-dragging {
+        border-color: #48c7ff;
+        background: rgba(24, 39, 50, 0.9);
+        transform: translateY(-2px);
+      }
+
+      .drop-zone.has-error {
+        border-color: #ff5d5d;
+      }
+
+      .drop-icon {
+        width: 70px;
+        height: 70px;
+        margin: 0 auto 16px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        color: #ffb15d;
+        font-size: 36px;
+      }
+
+      .drop-zone h3 {
+        margin: 0 0 10px;
+        font-size: 26px;
+      }
+
+      .drop-zone p {
+        margin: 0;
+        color: #aeb8c6;
+        line-height: 1.5;
+      }
+
+      .drop-actions {
+        margin-top: 22px;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .hint {
+        color: #909bad;
+        font-size: 14px;
+      }
+
+      .status {
+        min-height: 24px;
+        margin: 16px 0 0;
+        color: #c8d0dc;
+      }
+
+      .status.error {
+        color: #ff8e8e;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: #dce4ef;
+        font-weight: 700;
+      }
+
+      .field {
+        margin-bottom: 18px;
+      }
+
+      .text-input {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 6px;
+        background: #0f1218;
+        color: #f7f9fc;
+        padding: 12px 14px;
+      }
+
+      .tag-placeholder {
+        min-height: 48px;
+        border: 1px dashed rgba(255, 255, 255, 0.18);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        padding: 0 14px;
+        color: #858f9e;
+      }
+
+      .dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .download-options {
+        display: grid;
+        gap: 12px;
+        margin-top: 22px;
+      }
+
+      .download-option {
+        width: 100%;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.07);
+        color: #f7f9fc;
+        cursor: pointer;
+        padding: 16px;
+        text-align: left;
+      }
+
+      .download-option strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .download-option span {
+        color: #aeb8c6;
+      }
+
+      .download-option:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
+      .download-warning {
+        display: none;
+        margin: 14px 0 0;
+        color: #ffb15d;
+        line-height: 1.45;
+      }
+
+      .download-warning.is-visible {
+        display: block;
+      }
+
+      @media (max-width: 860px) {
+        .hero,
+        .toolbar {
+          grid-template-columns: 1fr;
+        }
+
+        .catalogue-meta {
+          justify-content: flex-start;
+        }
+
+        .catalogue {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 620px) {
+        main {
+          padding: 24px 0 40px;
+        }
+
+        .topbar {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .catalogue {
+          grid-template-columns: 1fr;
+        }
+
+        .button {
+          width: 100%;
+        }
+
+        .drop-zone {
+          min-height: 240px;
+          padding: 22px 16px;
+        }
+
+        .dialog-actions {
+          justify-content: stretch;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">F</div>
+          <span>FicsitPrints</span>
+        </div>
+        <button id="open-upload" class="button" type="button">Upload Blueprint</button>
+      </header>
+
+      <section class="hero" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Blueprint catalogue</p>
+          <h1 id="page-title">Find factory builds worth copying.</h1>
+          <p class="intro">Browse uploaded Satisfactory blueprints, then publish your own when the factory math gets too pretty to keep private.</p>
+        </div>
+        <div class="catalogue-meta" aria-label="Catalogue stats">
+          <span id="blueprint-count" class="pill">0 blueprints</span>
+          <span class="pill">Community uploads</span>
+        </div>
+      </section>
+
+      <section class="toolbar" aria-label="Catalogue tools">
+        <input id="search" class="search" type="search" placeholder="Search blueprints">
+        <span class="sort-label">Newest first</span>
+      </section>
+
+      <section id="catalogue" class="catalogue" aria-label="Uploaded blueprints"></section>
+      <p id="empty-state" class="empty-state"></p>
+    </main>
+
+    <div id="upload-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="upload-title">
+      <div class="dialog">
+        <div class="dialog-header">
+          <div>
+            <h2 id="upload-title">Upload blueprint</h2>
+            <p class="dialog-copy">Drop a Satisfactory blueprint file to prepare it for publishing.</p>
+          </div>
+          <button id="close-upload" class="close" type="button" aria-label="Close upload menu">X</button>
+        </div>
+
+        <div id="drop-zone" class="drop-zone">
+          <div>
+            <div class="drop-icon" aria-hidden="true">+</div>
+            <h3>Drag a blueprint file here</h3>
+            <p>Accepted files: <strong>.sbp</strong> and <strong>.sbpcfg</strong></p>
+            <div class="drop-actions">
+              <button id="choose-file" class="button" type="button">Choose File</button>
+            </div>
+            <p class="hint">The file is only checked locally right now.</p>
+          </div>
+        </div>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+        <input id="file-input" type="file" accept=".sbp,.sbpcfg" hidden>
+      </div>
+    </div>
+
+    <div id="publish-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="publish-title">
+      <div class="dialog">
+        <div class="dialog-header">
+          <div>
+            <h2 id="publish-title">Publish blueprint</h2>
+            <p id="file-summary" class="file-summary"></p>
+          </div>
+          <button id="close-publish" class="close" type="button" aria-label="Close publish menu">X</button>
+        </div>
+
+        <div class="field">
+          <label for="blueprint-name">Blueprint name</label>
+          <input id="blueprint-name" class="text-input" type="text" placeholder="Starter Iron Factory">
+        </div>
+
+        <div class="field">
+          <label>Tags</label>
+          <div class="tag-placeholder">Tags will be added later</div>
+        </div>
+
+        <div class="dialog-actions">
+          <button id="cancel-publish" class="button secondary" type="button">Cancel</button>
+          <button id="publish-button" class="button" type="button">Publish</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="download-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="download-title">
+      <div class="dialog">
+        <div class="dialog-header">
+          <div>
+            <h2 id="download-title">Download blueprint</h2>
+            <p id="download-summary" class="file-summary"></p>
+          </div>
+          <button id="close-download" class="close" type="button" aria-label="Close download menu">X</button>
+        </div>
+
+        <div class="download-options">
+          <button class="download-option" type="button" data-extension=".sbp">
+            <strong>Download .sbp</strong>
+            <span>Main Satisfactory blueprint file</span>
+          </button>
+          <button class="download-option" type="button" data-extension=".sbpcfg">
+            <strong>Download .sbpcfg</strong>
+            <span>Blueprint config-style file</span>
+          </button>
+        </div>
+        <p id="download-warning" class="download-warning" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <script>
+      const validExtensions = [".sbp", ".sbpcfg"];
+      const storageKey = "ficsitprints.blueprints";
+
+      const catalogue = document.querySelector("#catalogue");
+      const blueprintCount = document.querySelector("#blueprint-count");
+      const emptyState = document.querySelector("#empty-state");
+      const search = document.querySelector("#search");
+      const openUpload = document.querySelector("#open-upload");
+      const uploadModal = document.querySelector("#upload-modal");
+      const closeUpload = document.querySelector("#close-upload");
+      const publishModal = document.querySelector("#publish-modal");
+      const closePublish = document.querySelector("#close-publish");
+      const downloadModal = document.querySelector("#download-modal");
+      const closeDownload = document.querySelector("#close-download");
+      const downloadSummary = document.querySelector("#download-summary");
+      const downloadWarning = document.querySelector("#download-warning");
+      const downloadOptions = document.querySelectorAll(".download-option");
+      const dropZone = document.querySelector("#drop-zone");
+      const fileInput = document.querySelector("#file-input");
+      const chooseFile = document.querySelector("#choose-file");
+      const status = document.querySelector("#status");
+      const cancelPublish = document.querySelector("#cancel-publish");
+      const publishButton = document.querySelector("#publish-button");
+      const blueprintName = document.querySelector("#blueprint-name");
+      const fileSummary = document.querySelector("#file-summary");
+      let blueprints = loadBlueprints();
+      let selectedFile = null;
+      let selectedFileDataUrl = "";
+      let selectedBlueprint = null;
+
+      function loadBlueprints() {
+        try {
+          const savedBlueprints = JSON.parse(localStorage.getItem(storageKey)) || [];
+          return savedBlueprints.map((blueprint) => ({
+            id: blueprint.id || crypto.randomUUID(),
+            name: blueprint.name || "Untitled blueprint",
+            description: blueprint.description || "Local test upload.",
+            author: blueprint.author || "You",
+            downloads: Number(blueprint.downloads || 0),
+            category: blueprint.category || "New",
+            fileName: blueprint.fileName || "",
+            fileDataUrl: blueprint.fileDataUrl || "",
+            uploadedAt: blueprint.uploadedAt || new Date().toISOString(),
+          }));
+        } catch {
+          return [];
+        }
+      }
+
+      function saveBlueprints() {
+        localStorage.setItem(storageKey, JSON.stringify(blueprints));
+      }
+
+      function extensionFor(fileName) {
+        const dotIndex = fileName.lastIndexOf(".");
+        return dotIndex === -1 ? "" : fileName.slice(dotIndex).toLowerCase();
+      }
+
+      function nameWithoutExtension(fileName) {
+        const dotIndex = fileName.lastIndexOf(".");
+        return dotIndex === -1 ? fileName : fileName.slice(0, dotIndex);
+      }
+
+      function setStatus(message, isError = false) {
+        status.textContent = message;
+        status.classList.toggle("error", isError);
+        dropZone.classList.toggle("has-error", isError);
+      }
+
+      function safeFileBaseName(name) {
+        return name.trim().replace(/[^a-z0-9-_ ]/gi, "").replace(/\s+/g, "-") || "ficsitprint";
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (character) => {
+          return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            "\"": "&quot;",
+            "'": "&#039;",
+          }[character];
+        });
+      }
+
+      function cardFor(blueprint) {
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "blueprint-card";
+        card.dataset.id = blueprint.id;
+        card.innerHTML = `
+          <div class="blueprint-preview" aria-hidden="true">BP</div>
+          <div class="blueprint-body">
+            <h2>${escapeHtml(blueprint.name)}</h2>
+            <p>${escapeHtml(blueprint.description)}</p>
+            <div class="blueprint-stats">
+              <span class="stat">${escapeHtml(blueprint.category)}</span>
+              <span class="stat">by ${escapeHtml(blueprint.author)}</span>
+              <span class="stat">${escapeHtml(blueprint.downloads)} downloads</span>
+            </div>
+          </div>
+        `;
+        return card;
+      }
+
+      function renderCatalogue() {
+        const query = search.value.trim().toLowerCase();
+        const filteredBlueprints = blueprints.filter((blueprint) => {
+          return [blueprint.name, blueprint.description, blueprint.author, blueprint.category]
+            .join(" ")
+            .toLowerCase()
+            .includes(query);
+        });
+
+        catalogue.replaceChildren(...filteredBlueprints.map(cardFor));
+        blueprintCount.textContent = `${blueprints.length} ${blueprints.length === 1 ? "blueprint" : "blueprints"}`;
+        emptyState.classList.toggle("is-visible", filteredBlueprints.length === 0);
+        emptyState.innerHTML = blueprints.length === 0
+          ? "<strong>No blueprints uploaded yet.</strong>Use the Upload Blueprint button to add the first one."
+          : "No blueprints match that search.";
+      }
+
+      function openModal(modal) {
+        modal.classList.add("is-open");
+      }
+
+      function closeModal(modal) {
+        modal.classList.remove("is-open");
+      }
+
+      function openPublishMenu(file) {
+        selectedFile = file;
+        blueprintName.value = nameWithoutExtension(file.name);
+        fileSummary.textContent = `${file.name} (${Math.max(1, Math.round(file.size / 1024))} KB)`;
+        closeModal(uploadModal);
+        openModal(publishModal);
+        setStatus("Blueprint format accepted. Ready to publish.");
+        blueprintName.focus();
+        blueprintName.select();
+      }
+
+      function openDownloadMenu(blueprint) {
+        if (!blueprint) {
+          return;
+        }
+
+        selectedBlueprint = blueprint;
+        downloadSummary.textContent = `${blueprint.name} uploaded from ${blueprint.fileName || "a local file"}.`;
+        const hasStoredFile = Boolean(blueprint.fileDataUrl);
+        downloadWarning.textContent = hasStoredFile
+          ? ""
+          : "This blueprint was uploaded before file saving was added. Re-upload it once and downloads will work.";
+        downloadWarning.classList.toggle("is-visible", !hasStoredFile);
+        downloadOptions.forEach((button) => {
+          button.disabled = !hasStoredFile;
+        });
+        openModal(downloadModal);
+      }
+
+      function blobFromDataUrl(dataUrl) {
+        const [header, data] = dataUrl.split(",");
+        const mimeMatch = header.match(/data:([^;]+);base64/);
+        const mimeType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+        const binary = atob(data);
+        const bytes = new Uint8Array(binary.length);
+
+        for (let index = 0; index < binary.length; index += 1) {
+          bytes[index] = binary.charCodeAt(index);
+        }
+
+        return new Blob([bytes], { type: mimeType });
+      }
+
+      function downloadBlueprint(extension) {
+        if (!selectedBlueprint || !selectedBlueprint.fileDataUrl) {
+          downloadWarning.textContent = "There is no saved file content for this blueprint. Re-upload it to make it downloadable.";
+          downloadWarning.classList.add("is-visible");
+          return;
+        }
+
+        const blob = blobFromDataUrl(selectedBlueprint.fileDataUrl);
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = `${safeFileBaseName(selectedBlueprint.name)}${extension}`;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+
+        selectedBlueprint.downloads += 1;
+        saveBlueprints();
+        renderCatalogue();
+      }
+
+      function handleFile(file) {
+        if (!file) {
+          return;
+        }
+
+        const extension = extensionFor(file.name);
+        if (!validExtensions.includes(extension)) {
+          setStatus("That does not look like a Satisfactory blueprint file. Try a .sbp or .sbpcfg file.", true);
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.addEventListener("load", () => {
+          selectedFileDataUrl = String(reader.result || "");
+          openPublishMenu(file);
+        });
+        reader.readAsDataURL(file);
+      }
+
+      renderCatalogue();
+
+      search.addEventListener("input", renderCatalogue);
+      openUpload.addEventListener("click", () => {
+        setStatus("");
+        openModal(uploadModal);
+      });
+      closeUpload.addEventListener("click", () => closeModal(uploadModal));
+      closePublish.addEventListener("click", () => closeModal(publishModal));
+      closeDownload.addEventListener("click", () => closeModal(downloadModal));
+      cancelPublish.addEventListener("click", () => closeModal(publishModal));
+      chooseFile.addEventListener("click", () => fileInput.click());
+
+      catalogue.addEventListener("click", (event) => {
+        const card = event.target.closest(".blueprint-card");
+        if (!card) {
+          return;
+        }
+
+        openDownloadMenu(blueprints.find((blueprint) => blueprint.id === card.dataset.id));
+      });
+
+      fileInput.addEventListener("change", () => {
+        handleFile(fileInput.files[0]);
+        fileInput.value = "";
+      });
+
+      dropZone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        dropZone.classList.add("is-dragging");
+      });
+
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("is-dragging");
+      });
+
+      dropZone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        dropZone.classList.remove("is-dragging");
+        handleFile(event.dataTransfer.files[0]);
+      });
+
+      publishButton.addEventListener("click", () => {
+        const name = blueprintName.value.trim();
+        if (!name) {
+          setStatus("Add a blueprint name before publishing.", true);
+          blueprintName.focus();
+          return;
+        }
+
+        blueprints = [
+          {
+            id: crypto.randomUUID(),
+            name,
+            description: selectedFile ? `Local test upload from ${selectedFile.name}.` : "Local test upload.",
+            author: "You",
+            downloads: 0,
+            category: "New",
+            fileName: selectedFile ? selectedFile.name : "",
+            fileDataUrl: selectedFileDataUrl,
+            uploadedAt: new Date().toISOString(),
+          },
+          ...blueprints,
+        ];
+        saveBlueprints();
+        closeModal(publishModal);
+        search.value = "";
+        renderCatalogue();
+      });
+
+      document.querySelectorAll(".download-option").forEach((button) => {
+        button.addEventListener("click", () => downloadBlueprint(button.dataset.extension));
+      });
+
+      for (const modal of [uploadModal, publishModal, downloadModal]) {
+        modal.addEventListener("click", (event) => {
+          if (event.target === modal) {
+            closeModal(modal);
+          }
+        });
+      }
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeModal(uploadModal);
+          closeModal(publishModal);
+          closeModal(downloadModal);
+        }
+      });
+    </script>
+  </body>
+</html>
