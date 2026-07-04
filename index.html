@@ -592,7 +592,9 @@
 
     <script>
       const validExtensions = [".sbp", ".sbpcfg"];
-      const storageKey = "ficsitprints.blueprints";
+      const legacyStorageKey = "ficsitprints.blueprints";
+      const databaseName = "ficsitprints";
+      const storeName = "blueprints";
 
       const catalogue = document.querySelector("#catalogue");
       const blueprintCount = document.querySelector("#blueprint-count");
@@ -616,32 +618,98 @@
       const publishButton = document.querySelector("#publish-button");
       const blueprintName = document.querySelector("#blueprint-name");
       const fileSummary = document.querySelector("#file-summary");
-      let blueprints = loadBlueprints();
+      let blueprints = [];
       let selectedFile = null;
-      let selectedFileDataUrl = "";
       let selectedBlueprint = null;
 
-      function loadBlueprints() {
+      function normalizeBlueprint(blueprint) {
+        return {
+          id: blueprint.id || crypto.randomUUID(),
+          name: blueprint.name || "Untitled blueprint",
+          description: blueprint.description || "Local test upload.",
+          author: blueprint.author || "You",
+          downloads: Number(blueprint.downloads || 0),
+          category: blueprint.category || "New",
+          fileName: blueprint.fileName || "",
+          fileBlob: blueprint.fileBlob || null,
+          fileDataUrl: blueprint.fileDataUrl || "",
+          uploadedAt: blueprint.uploadedAt || new Date().toISOString(),
+        };
+      }
+
+      function openDatabase() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(databaseName, 1);
+
+          request.addEventListener("upgradeneeded", () => {
+            const database = request.result;
+            if (!database.objectStoreNames.contains(storeName)) {
+              database.createObjectStore(storeName, { keyPath: "id" });
+            }
+          });
+
+          request.addEventListener("success", () => resolve(request.result));
+          request.addEventListener("error", () => reject(request.error));
+        });
+      }
+
+      function transactionComplete(transaction) {
+        return new Promise((resolve, reject) => {
+          transaction.addEventListener("complete", resolve);
+          transaction.addEventListener("abort", () => reject(transaction.error));
+          transaction.addEventListener("error", () => reject(transaction.error));
+        });
+      }
+
+      async function getSavedBlueprints() {
+        const database = await openDatabase();
+        return new Promise((resolve, reject) => {
+          const transaction = database.transaction(storeName, "readonly");
+          const request = transaction.objectStore(storeName).getAll();
+          request.addEventListener("success", () => resolve(request.result.map(normalizeBlueprint)));
+          request.addEventListener("error", () => reject(request.error));
+        });
+      }
+
+      async function saveBlueprintRecord(blueprint) {
+        const database = await openDatabase();
+        const transaction = database.transaction(storeName, "readwrite");
+        transaction.objectStore(storeName).put(blueprint);
+        await transactionComplete(transaction);
+      }
+
+      async function migrateLegacyBlueprints() {
         try {
-          const savedBlueprints = JSON.parse(localStorage.getItem(storageKey)) || [];
-          return savedBlueprints.map((blueprint) => ({
-            id: blueprint.id || crypto.randomUUID(),
-            name: blueprint.name || "Untitled blueprint",
-            description: blueprint.description || "Local test upload.",
-            author: blueprint.author || "You",
-            downloads: Number(blueprint.downloads || 0),
-            category: blueprint.category || "New",
-            fileName: blueprint.fileName || "",
-            fileDataUrl: blueprint.fileDataUrl || "",
-            uploadedAt: blueprint.uploadedAt || new Date().toISOString(),
-          }));
+          const legacyBlueprints = JSON.parse(localStorage.getItem(legacyStorageKey)) || [];
+          if (!legacyBlueprints.length) {
+            return [];
+          }
+
+          const migratedBlueprints = legacyBlueprints.map(normalizeBlueprint);
+          for (const blueprint of migratedBlueprints) {
+            await saveBlueprintRecord(blueprint);
+          }
+          localStorage.removeItem(legacyStorageKey);
+          return migratedBlueprints;
         } catch {
           return [];
         }
       }
 
-      function saveBlueprints() {
-        localStorage.setItem(storageKey, JSON.stringify(blueprints));
+      async function loadBlueprints() {
+        try {
+          blueprints = (await getSavedBlueprints()).sort((first, second) => {
+            return new Date(second.uploadedAt) - new Date(first.uploadedAt);
+          });
+
+          if (!blueprints.length) {
+            blueprints = await migrateLegacyBlueprints();
+          }
+        } catch {
+          blueprints = [];
+        }
+
+        renderCatalogue();
       }
 
       function extensionFor(fileName) {
@@ -739,7 +807,7 @@
 
         selectedBlueprint = blueprint;
         downloadSummary.textContent = `${blueprint.name} uploaded from ${blueprint.fileName || "a local file"}.`;
-        const hasStoredFile = Boolean(blueprint.fileDataUrl);
+        const hasStoredFile = Boolean(blueprint.fileBlob || blueprint.fileDataUrl);
         downloadWarning.textContent = hasStoredFile
           ? ""
           : "This blueprint was uploaded before file saving was added. Re-upload it once and downloads will work.";
@@ -764,14 +832,26 @@
         return new Blob([bytes], { type: mimeType });
       }
 
-      function downloadBlueprint(extension) {
-        if (!selectedBlueprint || !selectedBlueprint.fileDataUrl) {
+      function storedBlobFor(blueprint) {
+        if (blueprint.fileBlob) {
+          return blueprint.fileBlob;
+        }
+
+        if (blueprint.fileDataUrl) {
+          return blobFromDataUrl(blueprint.fileDataUrl);
+        }
+
+        return null;
+      }
+
+      async function downloadBlueprint(extension) {
+        const blob = selectedBlueprint ? storedBlobFor(selectedBlueprint) : null;
+        if (!blob) {
           downloadWarning.textContent = "There is no saved file content for this blueprint. Re-upload it to make it downloadable.";
           downloadWarning.classList.add("is-visible");
           return;
         }
 
-        const blob = blobFromDataUrl(selectedBlueprint.fileDataUrl);
         const objectUrl = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = objectUrl;
@@ -782,7 +862,7 @@
         setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 
         selectedBlueprint.downloads += 1;
-        saveBlueprints();
+        await saveBlueprintRecord(selectedBlueprint);
         renderCatalogue();
       }
 
@@ -797,15 +877,10 @@
           return;
         }
 
-        const reader = new FileReader();
-        reader.addEventListener("load", () => {
-          selectedFileDataUrl = String(reader.result || "");
-          openPublishMenu(file);
-        });
-        reader.readAsDataURL(file);
+        openPublishMenu(file);
       }
 
-      renderCatalogue();
+      loadBlueprints();
 
       search.addEventListener("input", renderCatalogue);
       openUpload.addEventListener("click", () => {
@@ -847,7 +922,7 @@
         handleFile(event.dataTransfer.files[0]);
       });
 
-      publishButton.addEventListener("click", () => {
+      publishButton.addEventListener("click", async () => {
         const name = blueprintName.value.trim();
         if (!name) {
           setStatus("Add a blueprint name before publishing.", true);
@@ -855,21 +930,30 @@
           return;
         }
 
+        const newBlueprint = {
+          id: crypto.randomUUID(),
+          name,
+          description: selectedFile ? `Local test upload from ${selectedFile.name}.` : "Local test upload.",
+          author: "You",
+          downloads: 0,
+          category: "New",
+          fileName: selectedFile ? selectedFile.name : "",
+          fileBlob: selectedFile,
+          fileDataUrl: "",
+          uploadedAt: new Date().toISOString(),
+        };
+
+        try {
+          await saveBlueprintRecord(newBlueprint);
+        } catch {
+          setStatus("The browser could not save this file locally. Try a smaller file, or use the Cloudflare version once storage is connected.", true);
+          return;
+        }
+
         blueprints = [
-          {
-            id: crypto.randomUUID(),
-            name,
-            description: selectedFile ? `Local test upload from ${selectedFile.name}.` : "Local test upload.",
-            author: "You",
-            downloads: 0,
-            category: "New",
-            fileName: selectedFile ? selectedFile.name : "",
-            fileDataUrl: selectedFileDataUrl,
-            uploadedAt: new Date().toISOString(),
-          },
+          newBlueprint,
           ...blueprints,
         ];
-        saveBlueprints();
         closeModal(publishModal);
         search.value = "";
         renderCatalogue();
